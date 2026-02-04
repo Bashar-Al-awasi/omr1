@@ -1,0 +1,10 @@
+# document_file_save_plus saveFile API
+
+// This is a helper for the agent to clarify the API usage.
+// According to the latest plugin (2.0.0), the saveFile method signature is:
+//   Future<void> saveFile(Uint8List data, String fileName, String mimeType)
+// It does NOT return a file path. It only triggers the system save dialog and saves the file.
+// There is no way to get the file path or open the file directly after saving on Android.
+// The previous code assumed a return value, but the actual return type is Future<void>.
+// The correct approach is to show a success message after saveFile completes, but not to offer a 'View' action.
+// See: https://pub.dev/packages/document_file_save_plus

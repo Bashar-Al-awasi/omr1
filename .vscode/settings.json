@@ -1,0 +1,5 @@
+{
+    "java.compile.nullAnalysis.mode": "disabled",
+    "cmake.sourceDirectory": "C:/Users/Bashar/Desktop/omr1/windows/runner",
+    "java.configuration.updateBuildConfiguration": "automatic"
+}
