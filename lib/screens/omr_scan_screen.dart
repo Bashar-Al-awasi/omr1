@@ -7,7 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../utils/omr_pipeline.dart';
 import 'package:provider/provider.dart';
 import '../providers/student_provider.dart';
-import '../models/student.dart';
+// no direct Student model import needed here
 
 class OmrScanScreen extends StatefulWidget {
   const OmrScanScreen({super.key});
@@ -20,8 +20,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   String? _studentFileName;
   String? _scanResult;
   File? _selectedImage;
-  final TextEditingController _scannedIdController = TextEditingController();
-  Student? _foundStudent;
+  // removed manual lookup fields
   Future<void> _pickImageFromCamera() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera);
@@ -112,21 +111,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     }
   }
 
-  Future<void> _lookupStudent() async {
-    final id = _scannedIdController.text.trim();
-    if (id.isEmpty) {
-      setState(() {
-        _foundStudent = null;
-      });
-      return;
-    }
-    final prov = Provider.of<StudentProvider>(context, listen: false);
-    final student = await prov.findByStudentId(id);
-    if (!mounted) return;
-    setState(() {
-      _foundStudent = student;
-    });
-  }
+  // manual lookup removed per request; upload uses StudentProvider.importFromFile
   
 
 
@@ -265,33 +250,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              // Manual/Scanned ID lookup
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Row(children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _scannedIdController,
-                        decoration: InputDecoration(hintText: 'Enter scanned student ID', border: InputBorder.none),
-                      ),
-                    ),
-                    ElevatedButton(onPressed: _lookupStudent, child: const Text('Lookup')),
-                  ]),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_foundStudent != null) ...[
-                ListTile(
-                  leading: CircleAvatar(child: Text((_foundStudent!.name.isNotEmpty ? _foundStudent!.name[0] : '?'))),
-                  title: Text(_foundStudent!.name.isNotEmpty ? _foundStudent!.name : 'No name'),
-                  subtitle: Text('ID: ${_foundStudent!.studentId}'),
-                ),
-              ] else ...[
-                const SizedBox.shrink(),
-              ],
+              // no manual lookup UI; upload stores students to DB via provider
               if (_scanResult != null) ...[
                 const SizedBox(height: 28),
                 Card(
@@ -335,7 +294,6 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
 
   @override
   void dispose() {
-    _scannedIdController.dispose();
     super.dispose();
   }
 }

@@ -27,7 +27,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id TEXT,
+        student_id TEXT UNIQUE,
         name TEXT
       )
     ''');

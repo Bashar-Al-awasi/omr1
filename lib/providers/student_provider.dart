@@ -43,12 +43,22 @@ class StudentProvider extends ChangeNotifier {
       if (lower.endsWith('.csv') || lower.endsWith('.txt')) {
         final content = await file.readAsString();
         final lines = content.split(RegExp(r"\r?\n"));
-        for (var line in lines) {
+        bool skipFirst = false;
+        if (lines.isNotEmpty) {
+          final firstParts = lines.first.split(RegExp(r',|;|\t')).map((p) => p.replaceAll('"', '').trim().toLowerCase()).toList();
+          if (firstParts.isNotEmpty && (firstParts[0].contains('id') || (firstParts.length > 1 && firstParts[1].contains('name')))) skipFirst = true;
+        }
+        for (var i = 0; i < lines.length; i++) {
+          if (i == 0 && skipFirst) continue;
+          final line = lines[i];
           if (line.trim().isEmpty) continue;
-          final parts = line.split(',');
+          final parts = line.split(RegExp(r',|;|\t'));
           if (parts.isEmpty) continue;
-          final id = parts.length > 0 ? parts[0].trim() : '';
-          final name = parts.length > 1 ? parts[1].trim() : '';
+          String id = parts.length > 0 ? parts[0].trim() : '';
+          String name = parts.length > 1 ? parts[1].trim() : '';
+          // remove surrounding quotes
+          id = id.replaceAll(RegExp(r'^"|"$'), '');
+          name = name.replaceAll(RegExp(r'^"|"$'), '');
           if (id.isNotEmpty || name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
         }
       } else if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) {
@@ -56,12 +66,27 @@ class StudentProvider extends ChangeNotifier {
         final excel = Excel.decodeBytes(bytes);
         for (var sheetName in excel.tables.keys) {
           final sheet = excel.tables[sheetName]!;
-          for (var row in sheet.rows) {
+          // detect header in first row
+          bool skipFirst = false;
+          if (sheet.maxRows > 0) {
+            final firstRow = sheet.row(0);
+            if (firstRow.isNotEmpty) {
+              final a = (firstRow[0]?.value ?? '').toString().toLowerCase();
+              final b = firstRow.length > 1 ? (firstRow[1]?.value ?? '').toString().toLowerCase() : '';
+              if (a.contains('id') || b.contains('name')) skipFirst = true;
+            }
+          }
+          for (var r = 0; r < sheet.maxRows; r++) {
+            if (r == 0 && skipFirst) continue;
+            final row = sheet.row(r);
             if (row.isEmpty) continue;
-            final id = row.isNotEmpty && row[0] != null ? '${row[0]}' : '';
-            final name = row.length > 1 && row[1] != null ? '${row[1]}' : '';
+            final idCell = row.isNotEmpty && row[0] != null ? row[0] : null;
+            final nameCell = row.length > 1 && row[1] != null ? row[1] : null;
+            final id = idCell != null ? (idCell.value ?? idCell.toString()).toString().trim() : '';
+            final name = nameCell != null ? (nameCell.value ?? nameCell.toString()).toString().trim() : '';
             if (id.isNotEmpty || name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
           }
+          break; // only process first sheet
         }
       }
 
