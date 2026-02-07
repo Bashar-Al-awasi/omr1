@@ -44,6 +44,8 @@ dependencies:
   document_file_save_plus: ^2.0.0
   image_picker: ^1.1.2
   opencv_dart: ^1.4.1
+  sqflite: ^2.2.8
+  path: ^1.8.3
 
  
 

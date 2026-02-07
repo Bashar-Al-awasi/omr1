@@ -5,12 +5,17 @@ import 'package:omr1/screens/welcome_screen.dart';
 import 'package:provider/provider.dart'; // 1. Import provider
 import 'locale_provider.dart'; // 2. Import your provider
 import 'screens/home_dashboard_screen.dart';
+import 'providers/student_provider.dart';
+import 'screens/student_list_screen.dart';
 
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => StudentProvider()),
+      ],
       child: const OmrApp(),
     ),
   );
@@ -68,7 +73,7 @@ class OmrApp extends StatelessWidget {
       home: const WelcomeScreen(), // Use WelcomeScreen from the new file
       routes: {
         '/home': (_) => const HomeDashboardScreen(),
-        // Add other screens here as needed
+        '/students': (_) => const StudentListScreen(),
       },
     );
   }

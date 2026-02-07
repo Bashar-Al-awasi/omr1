@@ -138,9 +138,11 @@ class HomeDashboardScreen extends StatelessWidget {
                   },
                 ),
                 _QuickActionModern(
-                  icon: Icons.school,
-                  label: loc.practiceMode ,
-                  onTap: () {},
+                  icon: Icons.person_search,
+                  label: 'Students',
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/students');
+                  },
                 ),
               ],
             ),

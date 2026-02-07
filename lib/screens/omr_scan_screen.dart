@@ -1,17 +1,13 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as ex;
-import 'dart:typed_data';
+// removed unused imports: excel, typed_data
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../utils/omr_pipeline.dart';
-
-class StudentInfo {
-  final String id;
-  final String name;
-  StudentInfo({required this.id, required this.name});
-}
+import 'package:provider/provider.dart';
+import '../providers/student_provider.dart';
+import '../models/student.dart';
 
 class OmrScanScreen extends StatefulWidget {
   const OmrScanScreen({super.key});
@@ -21,10 +17,11 @@ class OmrScanScreen extends StatefulWidget {
 }
 
 class _OmrScanScreenState extends State<OmrScanScreen> {
-  List<StudentInfo> _students = [];
   String? _studentFileName;
   String? _scanResult;
   File? _selectedImage;
+  final TextEditingController _scannedIdController = TextEditingController();
+  Student? _foundStudent;
   Future<void> _pickImageFromCamera() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera);
@@ -46,33 +43,36 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   }
 
   Future<void> _pickStudentFile(AppLocalizations loc) async {
-    // Use file_picker to let the user select a file
-    // Only allow Excel files with the .xlsx extension to be picked
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom, // Custom type lets us specify allowed extensions
-      allowedExtensions: ['xlsx'], // Only .xlsx files are allowed for upload
+      type: FileType.custom,
+      allowedExtensions: ['csv', 'txt', 'xls', 'xlsx'],
+      withData: true,
     );
-    if (result != null && result.files.single.bytes != null) {
-      final Uint8List bytes = result.files.single.bytes!;
-      final excel = ex.Excel.decodeBytes(bytes);
-      final students = <StudentInfo>[];
-      for (final table in excel.tables.keys) {
-        final sheet = excel.tables[table]!;
-        for (var i = 1; i < sheet.maxRows; i++) { // skip header
-          final row = sheet.row(i);
-          if (row.length >= 2 && row[0] != null && row[1] != null) {
-            students.add(StudentInfo(id: row[0]!.value.toString().trim(), name: row[1]!.value.toString().trim()));
-          }
-        }
-        break; // Only first sheet
+    if (result == null) return;
+    final file = result.files.single;
+    _studentFileName = file.name;
+    final provider = Provider.of<StudentProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      if (file.path != null) {
+        await provider.importFromFile(File(file.path!));
+      } else if (file.bytes != null) {
+        final tmp = await Directory.systemTemp.createTemp('omr_students');
+        final f = File('${tmp.path}/${file.name}');
+        await f.writeAsBytes(file.bytes!);
+        await provider.importFromFile(f);
       }
-      setState(() {
-        _students = students;
-        _studentFileName = result.files.single.name;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.studentsLoaded(students.length))),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.studentsLoaded(provider.students.length))));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    } finally {
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) setState(() {});
     }
   }
 
@@ -110,6 +110,22 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
         _scanResult = 'Error:\n$e';
       });
     }
+  }
+
+  Future<void> _lookupStudent() async {
+    final id = _scannedIdController.text.trim();
+    if (id.isEmpty) {
+      setState(() {
+        _foundStudent = null;
+      });
+      return;
+    }
+    final prov = Provider.of<StudentProvider>(context, listen: false);
+    final student = await prov.findByStudentId(id);
+    if (!mounted) return;
+    setState(() {
+      _foundStudent = student;
+    });
   }
   
 
@@ -152,11 +168,14 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(_studentFileName!, style: TextStyle(fontSize: 13, color: Colors.grey[700]), overflow: TextOverflow.ellipsis),
                               ),
-                            if (_students.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text('(${_students.length} ${loc.students})', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                              ),
+                            Consumer<StudentProvider>(builder: (_, prov, __) {
+                              return prov.students.isNotEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text('(${prov.students.length} ${loc.students})', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                    )
+                                  : const SizedBox.shrink();
+                            }),
                           ],
                         ),
                       ),
@@ -246,6 +265,33 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              // Manual/Scanned ID lookup
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _scannedIdController,
+                        decoration: InputDecoration(hintText: 'Enter scanned student ID', border: InputBorder.none),
+                      ),
+                    ),
+                    ElevatedButton(onPressed: _lookupStudent, child: const Text('Lookup')),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_foundStudent != null) ...[
+                ListTile(
+                  leading: CircleAvatar(child: Text((_foundStudent!.name.isNotEmpty ? _foundStudent!.name[0] : '?'))),
+                  title: Text(_foundStudent!.name.isNotEmpty ? _foundStudent!.name : 'No name'),
+                  subtitle: Text('ID: ${_foundStudent!.studentId}'),
+                ),
+              ] else ...[
+                const SizedBox.shrink(),
+              ],
               if (_scanResult != null) ...[
                 const SizedBox(height: 28),
                 Card(
@@ -267,18 +313,29 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                   ),
                 ),
               ],
-              if (_students.isEmpty && _scanResult == null) ...[
-                const SizedBox(height: 18),
-                Text(
-                  loc.uploadStudentListRequired,
-                  style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold, fontSize: 15),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              Consumer<StudentProvider>(builder: (_, prov, __) {
+                if (prov.students.isEmpty && _scanResult == null) {
+                  return Column(children: [
+                    const SizedBox(height: 18),
+                    Text(
+                      loc.uploadStudentListRequired,
+                      style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold, fontSize: 15),
+                      textAlign: TextAlign.center,
+                    ),
+                  ]);
+                }
+                return const SizedBox.shrink();
+              }),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scannedIdController.dispose();
+    super.dispose();
   }
 }
