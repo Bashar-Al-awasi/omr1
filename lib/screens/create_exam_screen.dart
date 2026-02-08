@@ -382,6 +382,17 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 );
                 await db.insertQuestion(question);
               }
+              // Print all exams to debug console
+              final allExams = await db.getAllExams();
+              print('All exams in DB:');
+              for (final e in allExams) {
+                print('Exam: id=${e.id}, title=${e.title}, subject=${e.subject}, date=${e.date}, numQuestions=${e.numQuestions}, numChoices=${e.numChoices}');
+                // Print all questions for this exam
+                final questions = await db.getQuestionsByExamId(e.id!);
+                for (final q in questions) {
+                  print('  Question ${q.questionNumber}: correctChoice=${q.correctChoice}, mark=${q.mark}, examId=${q.examId}');
+                }
+              }
               // After saving to database, generate and save PDF
               String fileName = '${_title ?? 'exam'}.pdf';
               final pdfBytes = await printOmrExamPaper(
