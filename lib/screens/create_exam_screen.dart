@@ -382,6 +382,47 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 );
                 await db.insertQuestion(question);
               }
+              // After saving to database, generate and save PDF
+              String fileName = '${_title ?? 'exam'}.pdf';
+              final pdfBytes = await printOmrExamPaper(
+                context: context,
+                examTitle: _title ?? '',
+                idDigits: _idDigits,
+                numQuestions: _numQuestions,
+                numChoices: _numChoices,
+              );
+              if (pdfBytes.isNotEmpty) {
+                try {
+                  if (Theme.of(context).platform == TargetPlatform.android) {
+                    await DocumentFileSavePlus().saveFile(
+                      Uint8List.fromList(pdfBytes),
+                      fileName,
+                      "application/pdf",
+                    );
+                    _scaffoldMessengerKey.currentState?.showSnackBar(
+                      SnackBar(content: Text(loc.pdfSaved)),
+                    );
+                  } else {
+                    String? outputPath = await FilePicker.platform.saveFile(
+                      dialogTitle: loc.chooseSaveLocation,
+                      fileName: fileName,
+                      type: FileType.custom,
+                      allowedExtensions: ['pdf'],
+                    );
+                    if (outputPath != null) {
+                      final file = File(outputPath);
+                      await file.writeAsBytes(pdfBytes);
+                      _scaffoldMessengerKey.currentState?.showSnackBar(
+                        SnackBar(content: Text('${loc.pdfSavedTo} $outputPath'), action: SnackBarAction(label: loc.view, onPressed: () => OpenFile.open(outputPath))),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                    SnackBar(content: Text('PDF save error: $e')),
+                  );
+                }
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(loc.examSaved)),
               );
