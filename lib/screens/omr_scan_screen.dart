@@ -133,6 +133,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Student file upload card
+              //base
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 elevation: 3,
