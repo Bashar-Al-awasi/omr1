@@ -4,8 +4,25 @@ import 'package:path/path.dart';
 import '../models/student.dart';
 import '../models/exam.dart';
 import '../models/result.dart';
+import '../models/question.dart';
 
 class DatabaseHelper {
+    // Question methods
+    Future<int> insertQuestion(Question question) async {
+      final database = await db;
+      return await database.insert('questions', question.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    Future<List<Question>> getQuestionsByExamId(int examId) async {
+      final database = await db;
+      final res = await database.query('questions', where: 'exam_id = ?', whereArgs: [examId], orderBy: 'question_number ASC');
+      return res.map((e) => Question.fromMap(e)).toList();
+    }
+
+    Future<void> clearQuestions() async {
+      final database = await db;
+      await database.delete('questions');
+    }
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
@@ -43,6 +60,17 @@ class DatabaseHelper {
         num_questions INTEGER,
         num_choices INTEGER,
         answer_key TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        exam_id INTEGER,
+        question_number INTEGER,
+        correct_choice INTEGER,
+        mark INTEGER,
+        FOREIGN KEY(exam_id) REFERENCES exams(id)
       )
     ''');
 
