@@ -6,6 +6,9 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:open_file/open_file.dart';
+import 'package:omr1/db/database_helper.dart';
+import 'package:omr1/models/exam.dart';
+import 'package:omr1/models/question.dart';
 
 class CreateExamScreen extends StatefulWidget {
   const CreateExamScreen({super.key});
@@ -352,12 +355,37 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (_manualEntry && _answerKey.any((a) => a == null)) {
                 setState(() {});
                 return;
               }
-              _showA4PreviewDialog(context);
+              // Save exam and questions to database
+              final db = DatabaseHelper();
+              final exam = Exam(
+                title: _title ?? '',
+                subject: _subject ?? '',
+                date: DateTime.now().toIso8601String(),
+                numQuestions: _numQuestions,
+                numChoices: _numChoices,
+                answerKey: '', // Not used, since questions are stored separately
+              );
+              final examId = await db.insertExam(exam);
+              for (int i = 0; i < _numQuestions; i++) {
+                final correctChoice = _choiceLabels.indexOf(_answerKey[i] ?? '');
+                final mark = int.tryParse(_marksControllers[i].text) ?? 1;
+                final question = Question(
+                  examId: examId,
+                  questionNumber: i + 1,
+                  correctChoice: correctChoice,
+                  mark: mark,
+                );
+                await db.insertQuestion(question);
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(loc.examSaved)),
+              );
+              Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007BFF),
