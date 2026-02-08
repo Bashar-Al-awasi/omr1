@@ -31,6 +31,31 @@ class DatabaseHelper {
         name TEXT
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE exams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        subject TEXT,
+        date TEXT,
+        num_questions INTEGER,
+        num_choices INTEGER,
+        answer_key TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        exam_id INTEGER,
+        student_id TEXT,
+        score INTEGER,
+        answers TEXT,
+        date TEXT,
+        FOREIGN KEY(exam_id) REFERENCES exams(id),
+        FOREIGN KEY(student_id) REFERENCES students(student_id)
+      )
+    ''');
   }
 
   Future<int> insertStudent(Student s) async {
