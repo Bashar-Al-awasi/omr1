@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/student.dart';
+import '../models/exam.dart';
+import '../models/result.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -79,5 +81,52 @@ class DatabaseHelper {
   Future<void> clearStudents() async {
     final database = await db;
     await database.delete('students');
+  }
+
+  // Exam methods
+  Future<int> insertExam(Exam exam) async {
+    final database = await db;
+    return await database.insert('exams', exam.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Exam>> getAllExams() async {
+    final database = await db;
+    final res = await database.query('exams', orderBy: 'date DESC');
+    return res.map((e) => Exam.fromMap(e)).toList();
+  }
+
+  Future<Exam?> getExamById(int id) async {
+    final database = await db;
+    final res = await database.query('exams', where: 'id = ?', whereArgs: [id]);
+    if (res.isEmpty) return null;
+    return Exam.fromMap(res.first);
+  }
+
+  Future<void> clearExams() async {
+    final database = await db;
+    await database.delete('exams');
+  }
+
+  // Result methods
+  Future<int> insertResult(Result result) async {
+    final database = await db;
+    return await database.insert('results', result.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Result>> getResultsByExamId(int examId) async {
+    final database = await db;
+    final res = await database.query('results', where: 'exam_id = ?', whereArgs: [examId], orderBy: 'score DESC');
+    return res.map((e) => Result.fromMap(e)).toList();
+  }
+
+  Future<List<Result>> getResultsByStudentId(String studentId) async {
+    final database = await db;
+    final res = await database.query('results', where: 'student_id = ?', whereArgs: [studentId], orderBy: 'date DESC');
+    return res.map((e) => Result.fromMap(e)).toList();
+  }
+
+  Future<void> clearResults() async {
+    final database = await db;
+    await database.delete('results');
   }
 }
