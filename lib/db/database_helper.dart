@@ -47,7 +47,10 @@ class DatabaseHelper {
       CREATE TABLE students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id TEXT UNIQUE,
-        name TEXT
+        name TEXT,
+        subject TEXT,
+        notes TEXT,
+        title TEXT
       )
     ''');
 
