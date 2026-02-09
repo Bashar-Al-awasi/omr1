@@ -46,45 +46,45 @@ class StudentProvider extends ChangeNotifier {
         bool skipFirst = false;
         if (lines.isNotEmpty) {
           final firstParts = lines.first.split(RegExp(r',|;|\t')).map((p) => p.replaceAll('"', '').trim().toLowerCase()).toList();
-          if (firstParts.isNotEmpty && (firstParts[0].contains('id') || (firstParts.length > 1 && firstParts[1].contains('name')))) skipFirst = true;
+          // Skip header or title row if it contains 'id', 'name', or 'title'
+          if (firstParts.any((p) => p.contains('id') || p.contains('name') || p.contains('title'))) skipFirst = true;
         }
         for (var i = 0; i < lines.length; i++) {
           if (i == 0 && skipFirst) continue;
           final line = lines[i];
           if (line.trim().isEmpty) continue;
           final parts = line.split(RegExp(r',|;|\t'));
-          if (parts.isEmpty) continue;
-          String id = parts.length > 0 ? parts[0].trim() : '';
-          String name = parts.length > 1 ? parts[1].trim() : '';
+          if (parts.length < 3) continue; // Need at least 3 columns
+          String name = parts[1].trim(); // Name in second column
+          String id = parts[2].trim();   // ID in third column
           // remove surrounding quotes
           id = id.replaceAll(RegExp(r'^"|"$'), '');
           name = name.replaceAll(RegExp(r'^"|"$'), '');
-          if (id.isNotEmpty || name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
+          if (id.isNotEmpty && name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
         }
       } else if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) {
         final bytes = await file.readAsBytes();
         final excel = Excel.decodeBytes(bytes);
         for (var sheetName in excel.tables.keys) {
           final sheet = excel.tables[sheetName]!;
-          // detect header in first row
+          // detect header or title in first row
           bool skipFirst = false;
           if (sheet.maxRows > 0) {
             final firstRow = sheet.row(0);
             if (firstRow.isNotEmpty) {
-              final a = (firstRow[0]?.value ?? '').toString().toLowerCase();
-              final b = firstRow.length > 1 ? (firstRow[1]?.value ?? '').toString().toLowerCase() : '';
-              if (a.contains('id') || b.contains('name')) skipFirst = true;
+              final values = firstRow.map((cell) => (cell?.value ?? '').toString().toLowerCase()).toList();
+              if (values.any((v) => v.contains('id') || v.contains('name') || v.contains('title'))) skipFirst = true;
             }
           }
           for (var r = 0; r < sheet.maxRows; r++) {
             if (r == 0 && skipFirst) continue;
             final row = sheet.row(r);
-            if (row.isEmpty) continue;
-            final idCell = row.isNotEmpty && row[0] != null ? row[0] : null;
-            final nameCell = row.length > 1 && row[1] != null ? row[1] : null;
-            final id = idCell != null ? (idCell.value ?? idCell.toString()).toString().trim() : '';
-            final name = nameCell != null ? (nameCell.value ?? nameCell.toString()).toString().trim() : '';
-            if (id.isNotEmpty || name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
+            if (row.length < 3) continue; // Need at least 3 columns
+            final nameCell = row[1]; // Name in second column
+            final idCell = row[2];   // ID in third column
+            final name = (nameCell?.value ?? nameCell.toString()).toString().trim();
+            final id = (idCell?.value ?? idCell.toString()).toString().trim();
+            if (id.isNotEmpty && name.isNotEmpty) parsed.add(Student(studentId: id, name: name));
           }
           break; // only process first sheet
         }
