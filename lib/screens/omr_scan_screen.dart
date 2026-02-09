@@ -42,6 +42,49 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   }
 
   Future<void> _pickStudentFile(AppLocalizations loc) async {
+    String? title;
+    String? subject;
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        final titleController = TextEditingController();
+        final subjectController = TextEditingController();
+        return AlertDialog(
+          title: const Text('New List Info'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: subjectController,
+                decoration: const InputDecoration(labelText: 'Subject'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                title = titleController.text.trim();
+                subject = subjectController.text.trim();
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+    if (title == null || title!.isEmpty || subject == null || subject!.isEmpty) return;
+
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv', 'txt', 'xls', 'xlsx'],
@@ -58,12 +101,12 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     );
     try {
       if (file.path != null) {
-        await provider.importFromFile(File(file.path!));
+        await provider.importFromFileWithMeta(File(file.path!), subject!, title!);
       } else if (file.bytes != null) {
         final tmp = await Directory.systemTemp.createTemp('omr_students');
         final f = File('${tmp.path}/${file.name}');
         await f.writeAsBytes(file.bytes!);
-        await provider.importFromFile(f);
+        await provider.importFromFileWithMeta(f, subject!, title!);
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.studentsLoaded(provider.students.length))));
