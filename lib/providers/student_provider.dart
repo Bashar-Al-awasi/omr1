@@ -1,4 +1,4 @@
-  import 'dart:io';
+import 'dart:io';
   import 'package:flutter/foundation.dart';
   import 'package:excel/excel.dart';
   import '../db/database_helper.dart';
@@ -46,7 +46,7 @@
           bool skipFirst = false;
           if (lines.isNotEmpty) {
             final firstParts = lines.first.split(RegExp(r',|;|\t')).map((p) => p.replaceAll('"', '').trim().toLowerCase()).toList();
-            if (firstParts.any((p) => p.contains('id') || p.contains('name') || p.contains('title'))) skipFirst = true;
+            if (firstParts.any((p) => p.contains('sno') || p.contains('id') || p.contains('name') || p.contains('title'))) skipFirst = true;
           }
           for (var i = 0; i < lines.length; i++) {
             if (i == 0 && skipFirst) continue;
@@ -54,8 +54,11 @@
             if (line.trim().isEmpty) continue;
             final parts = line.split(RegExp(r',|;|\t'));
             if (parts.length < 3) continue;
+            final sno = parts[0].trim();
             String name = parts[1].trim();
             String id = parts[2].trim();
+            // Only import if SNO is a number and name/id are not empty
+            if (sno.isEmpty || int.tryParse(sno) == null) continue;
             id = id.replaceAll(RegExp(r'^"|"$'), '');
             name = name.replaceAll(RegExp(r'^"|"$'), '');
             if (id.isNotEmpty && name.isNotEmpty) parsed.add(Student(studentId: id, name: name, subject: subject, title: title));
@@ -70,17 +73,20 @@
               final firstRow = sheet.row(0);
               if (firstRow.isNotEmpty) {
                 final values = firstRow.map((cell) => (cell?.value ?? '').toString().toLowerCase()).toList();
-                if (values.any((v) => v.contains('id') || v.contains('name') || v.contains('title'))) skipFirst = true;
+                if (values.any((v) => v.contains('sno') || v.contains('id') || v.contains('name') || v.contains('title'))) skipFirst = true;
               }
             }
             for (var r = 0; r < sheet.maxRows; r++) {
               if (r == 0 && skipFirst) continue;
               final row = sheet.row(r);
               if (row.length < 3) continue;
+              final snoCell = row[0];
               final nameCell = row[1];
               final idCell = row[2];
+              final sno = (snoCell?.value ?? snoCell.toString()).toString().trim();
               final name = (nameCell?.value ?? nameCell.toString()).toString().trim();
               final id = (idCell?.value ?? idCell.toString()).toString().trim();
+              if (sno.isEmpty || int.tryParse(sno) == null) continue;
               if (id.isNotEmpty && name.isNotEmpty) parsed.add(Student(studentId: id, name: name, subject: subject, title: title));
             }
             break;
