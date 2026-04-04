@@ -145,11 +145,18 @@ Future<Uint8List> printOmrExamPaper({
               children: [
                 pw.Container(width: double.infinity, padding: const pw.EdgeInsets.symmetric(vertical: 6), color: PdfColors.black, child: pw.Center(child: pw.Text('ANSWER SECTION', style: pw.TextStyle(color: PdfColors.white, fontSize: 12, fontWeight: pw.FontWeight.bold)))),
                 pw.SizedBox(height: 8),
-                pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, mainAxisAlignment: pw.MainAxisAlignment.start, children: List.generate(cols, (col) {
-                  final start = col * perCol + 1;
-                  final end = ((start + perCol - 1) > numQuestions) ? numQuestions : (start + perCol - 1);
-                  return pw.Expanded(child: pw.Padding(padding: const pw.EdgeInsets.symmetric(horizontal: 1), child: _questionsColumnDynamic(start, end, numChoices, answerKey)));
-                })),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  mainAxisAlignment: pw.MainAxisAlignment.start,
+                  children: List.generate(cols, (col) {
+                    final start = col * perCol + 1;
+                    final end = ((start + perCol - 1) > numQuestions) ? numQuestions : (start + perCol - 1);
+                    return pw.Container(
+                      margin: const pw.EdgeInsets.symmetric(horizontal: 2),
+                      child: _questionsColumnDynamic(start, end, numChoices, answerKey),
+                    );
+                  }),
+                ),
               ],
             ),
           ),
