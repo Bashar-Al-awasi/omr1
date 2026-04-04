@@ -20,6 +20,9 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   String? _studentFileName;
   String? _scanResult;
   File? _selectedImage;
+  int _numQuestions = 8;
+  int _numChoices = 4;
+  String? _tempIdResult;
   // removed manual lookup fields
   Future<void> _pickImageFromCamera() async {
     final picker = ImagePicker();
@@ -127,29 +130,33 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     }
     setState(() {
       _scanResult = null;
+      _tempIdResult = null;
     });
     try {
       final imagePath = _selectedImage!.path;
-      final omr = OMRScanner();
-      final answers = omr.processImage(imagePath);
-      // Example correct answers (should be loaded or set elsewhere)
-      final correctAnswers = [2, 2, 2, 2, 4];
+      final omr = OMRScanner(questions: 5, choices: 5); // dummy, not used in auto
+      final result = omr.processImageAuto(imagePath);
+      final answers = result['answers'] as List<int>;
+      final detectedQuestions = result['numQuestions'];
+      final detectedChoices = result['numChoices'];
+      final idDigits = result['id'] as List<int>;
       List<String> results = [];
       for (int i = 0; i < answers.length; i++) {
         if (answers[i] == -1) {
           results.add('Q${i + 1}: Blank');
-        } else if (answers[i] == correctAnswers[i]) {
-          results.add('Q${i + 1}: Correct');
         } else {
-          results.add('Q${i + 1}: Wrong (Your: ${answers[i]}, Correct: ${correctAnswers[i]})');
+          results.add('Q${i + 1}: ${String.fromCharCode(65 + answers[i])}');
         }
       }
       setState(() {
-        _scanResult = 'Highlighted bubbles (index per row, -1=blank):\n${answers.toString()}\n\nResult per question:\n${results.join("\n")}';
+        _scanResult =
+            'Detected Questions: $detectedQuestions\nDetected Choices: $detectedChoices\nAnswers (index per row, -1=blank):\n${answers.toString()}\n\nResult per question:\n${results.join("\n")}';
+        _tempIdResult = 'Extracted ID: ${idDigits.join()}';
       });
     } catch (e) {
       setState(() {
         _scanResult = 'Error:\n$e';
+        _tempIdResult = null;
       });
     }
   }
@@ -294,9 +301,28 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                   ),
                 ],
               ),
+              // Controls for number of questions and choices removed (auto-detect)
               // no manual lookup UI; upload stores students to DB via provider
+              if (_tempIdResult != null) ...[
+                const SizedBox(height: 18),
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 4,
+                  color: Colors.yellow[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.perm_identity, color: Colors.deepOrange, size: 30),
+                        const SizedBox(width: 14),
+                        Expanded(child: Text(_tempIdResult!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if (_scanResult != null) ...[
-                const SizedBox(height: 28),
+                const SizedBox(height: 18),
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   elevation: 4,
