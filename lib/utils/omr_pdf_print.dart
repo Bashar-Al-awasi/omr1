@@ -70,23 +70,24 @@ Future<Uint8List> printOmrExamPaper({
         final q = start + i;
         final sel = (answers != null && answers.length >= q) ? answers[q - 1] : -1;
         return pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 1),
+          padding: const pw.EdgeInsets.symmetric(vertical: 2),
           child: pw.Row(
             children: [
-              pw.SizedBox(width: 14, child: pw.Text('$q.', style: const pw.TextStyle(fontSize: 9))),
+              pw.SizedBox(width: 16, child: pw.Text('$q.', style: const pw.TextStyle(fontSize: 10))),
+              pw.SizedBox(width: 10), // Extra space between question number and bubbles
               ...List.generate(choices, (c) {
                 final filled = sel == c;
                 return pw.Container(
-                  margin: const pw.EdgeInsets.symmetric(horizontal: 1),
-                  width: 10,
-                  height: 10,
+                  margin: const pw.EdgeInsets.symmetric(horizontal: 2),
+                  width: 16,
+                  height: 16,
                   decoration: pw.BoxDecoration(
                     shape: pw.BoxShape.circle,
-                    border: pw.Border.all(width: 0.5),
+                    border: pw.Border.all(width: 0.8),
                     color: filled ? PdfColors.black : PdfColors.white,
                   ),
                   child: pw.Center(
-                    child: pw.Text(String.fromCharCode(65 + c), style: pw.TextStyle(fontSize: 5, color: filled ? PdfColors.white : PdfColors.black)),
+                    child: pw.Text(String.fromCharCode(65 + c), style: pw.TextStyle(fontSize: 8, color: filled ? PdfColors.white : PdfColors.black)),
                   ),
                 );
               }),
@@ -104,11 +105,11 @@ Future<Uint8List> printOmrExamPaper({
       children: List.generate(10, (i) {
         final filled = sel == i;
         return pw.Container(
-          margin: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-          width: 12,
-          height: 12,
-          decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, border: pw.Border.all(width: 0.6), color: filled ? PdfColors.black : PdfColors.white),
-          child: pw.Center(child: pw.Text('$i', style: pw.TextStyle(fontSize: 6, color: filled ? PdfColors.white : PdfColors.black))),
+          margin: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+          width: 16,
+          height: 16,
+          decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, border: pw.Border.all(width: 0.8), color: filled ? PdfColors.black : PdfColors.white),
+          child: pw.Center(child: pw.Text('$i', style: pw.TextStyle(fontSize: 8, color: filled ? PdfColors.white : PdfColors.black))),
         );
       }),
     );
@@ -162,11 +163,18 @@ Future<Uint8List> printOmrExamPaper({
             pw.Container(
               width: double.infinity,
               decoration: pw.BoxDecoration(border: pw.Border.all()),
-              padding: const pw.EdgeInsets.all(14), // increased padding
+              padding: const pw.EdgeInsets.all(14),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Container(width: double.infinity, padding: const pw.EdgeInsets.symmetric(vertical: 6), color: PdfColors.black, child: pw.Center(child: pw.Text('ANSWER SECTION', style: pw.TextStyle(color: PdfColors.white, fontSize: 12, fontWeight: pw.FontWeight.bold)))),
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                    color: PdfColors.white,
+                    child: pw.Center(
+                      child: pw.Text('ANSWER SECTION', style: pw.TextStyle(color: PdfColors.black, fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                    ),
+                  ),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -175,7 +183,7 @@ Future<Uint8List> printOmrExamPaper({
                       final start = col * perCol + 1;
                       final end = ((start + perCol - 1) > numQuestions) ? numQuestions : (start + perCol - 1);
                       return pw.Container(
-                        margin: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        margin: pw.EdgeInsets.only(right: col < cols - 1 ? 18 : 0), // Add space between columns
                         child: _questionsColumnDynamic(start, end, numChoices, answerKey),
                       );
                     }),
