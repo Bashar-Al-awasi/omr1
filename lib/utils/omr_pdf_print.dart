@@ -3,6 +3,19 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/material.dart';
 
+// Corner marker widget (smaller for inner corners)
+pw.Widget cornerMarker({double size = 20}) => pw.Container(width: size, height: size, color: PdfColors.black);
+
+// Helper for four inner markers inside a fixed-size box (smaller and with more padding)
+pw.Widget fourInnerMarkers() {
+  return pw.Stack(children: [
+    pw.Positioned(left: 4, top: 4, child: cornerMarker(size: 12)),
+    pw.Positioned(right: 4, top: 4, child: cornerMarker(size: 12)),
+    pw.Positioned(left: 4, bottom: 4, child: cornerMarker(size: 12)),
+    pw.Positioned(right: 4, bottom: 4, child: cornerMarker(size: 12)),
+  ]);
+}
+
 /// Generates an OMR-style exam sheet PDF and fills bubbles according to
 /// `selectedId` and `answerKey` if provided.
 Future<Uint8List> printOmrExamPaper({
@@ -127,39 +140,51 @@ Future<Uint8List> printOmrExamPaper({
 
           // ID + instructions
           pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Column(children: [
-              pw.Text('STUDENT ID', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)), pw.SizedBox(height: 6), pw.Row(children: List.generate(idDigits, (idx) => _idDigitColumnWithSelection(idx))),
-            ])),
+            pw.Stack(children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.all(14), // increased padding
+                decoration: pw.BoxDecoration(border: pw.Border.all()),
+                child: pw.Column(children: [
+                  pw.Text('STUDENT ID', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 6),
+                  pw.Row(children: List.generate(idDigits, (idx) => _idDigitColumnWithSelection(idx))),
+                ]),
+              ),
+              pw.Positioned.fill(child: fourInnerMarkers()),
+            ]),
             pw.SizedBox(width: 16),
             _instructionsBox(),
           ]),
 
           pw.SizedBox(height: 16),
 
-          pw.Container(
-            width: double.infinity,
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            padding: const pw.EdgeInsets.all(6),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Container(width: double.infinity, padding: const pw.EdgeInsets.symmetric(vertical: 6), color: PdfColors.black, child: pw.Center(child: pw.Text('ANSWER SECTION', style: pw.TextStyle(color: PdfColors.white, fontSize: 12, fontWeight: pw.FontWeight.bold)))),
-                pw.SizedBox(height: 8),
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  mainAxisAlignment: pw.MainAxisAlignment.start,
-                  children: List.generate(cols, (col) {
-                    final start = col * perCol + 1;
-                    final end = ((start + perCol - 1) > numQuestions) ? numQuestions : (start + perCol - 1);
-                    return pw.Container(
-                      margin: const pw.EdgeInsets.symmetric(horizontal: 2),
-                      child: _questionsColumnDynamic(start, end, numChoices, answerKey),
-                    );
-                  }),
-                ),
-              ],
+          pw.Stack(children: [
+            pw.Container(
+              width: double.infinity,
+              decoration: pw.BoxDecoration(border: pw.Border.all()),
+              padding: const pw.EdgeInsets.all(14), // increased padding
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Container(width: double.infinity, padding: const pw.EdgeInsets.symmetric(vertical: 6), color: PdfColors.black, child: pw.Center(child: pw.Text('ANSWER SECTION', style: pw.TextStyle(color: PdfColors.white, fontSize: 12, fontWeight: pw.FontWeight.bold)))),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    mainAxisAlignment: pw.MainAxisAlignment.start,
+                    children: List.generate(cols, (col) {
+                      final start = col * perCol + 1;
+                      final end = ((start + perCol - 1) > numQuestions) ? numQuestions : (start + perCol - 1);
+                      return pw.Container(
+                        margin: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: _questionsColumnDynamic(start, end, numChoices, answerKey),
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
-          ),
+            pw.Positioned.fill(child: fourInnerMarkers()),
+          ]),
 
           pw.Spacer(),
 

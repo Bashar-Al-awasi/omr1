@@ -134,11 +134,9 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     });
     try {
       final imagePath = _selectedImage!.path;
-      final omr = OMRScanner(questions: 5, choices: 5); // dummy, not used in auto
-      final result = omr.processImageAuto(imagePath);
+      final omr = OMRScanner();
+      final result = omr.processImage(imagePath, idDigits: 6, numQuestions: 8, numChoices: 5);
       final answers = result['answers'] as List<int>;
-      final detectedQuestions = result['numQuestions'];
-      final detectedChoices = result['numChoices'];
       final idDigits = result['id'] as List<int>;
       List<String> results = [];
       for (int i = 0; i < answers.length; i++) {
@@ -150,7 +148,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
       }
       setState(() {
         _scanResult =
-            'Detected Questions: $detectedQuestions\nDetected Choices: $detectedChoices\nAnswers (index per row, -1=blank):\n${answers.toString()}\n\nResult per question:\n${results.join("\n")}';
+            'Answers (index per row, -1=blank):\n${answers.toString()}\n\nResult per question:\n${results.join("\n")}';
         _tempIdResult = 'Extracted ID: ${idDigits.join()}';
       });
     } catch (e) {
