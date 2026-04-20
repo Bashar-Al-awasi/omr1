@@ -39,7 +39,18 @@ class DatabaseHelper {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, 'omr1.db');
 
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  FutureOr<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE results ADD COLUMN student_name TEXT');
+    }
   }
 
   FutureOr<void> _onCreate(Database db, int version) async {
@@ -82,6 +93,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         exam_id INTEGER,
         student_id TEXT,
+        student_name TEXT,
         score INTEGER,
         answers TEXT,
         date TEXT,

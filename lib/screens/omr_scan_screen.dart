@@ -7,7 +7,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../utils/omr_pipeline.dart';
 import 'package:provider/provider.dart';
 import '../providers/student_provider.dart';
-// no direct Student model import needed here
+import '../db/database_helper.dart';
+import '../models/exam.dart';
+import '../models/result.dart';
+import '../models/question.dart';
+import 'dart:convert';
 
 class OmrScanScreen extends StatefulWidget {
   const OmrScanScreen({super.key});
@@ -20,10 +24,22 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   String? _studentFileName;
   String? _scanResult;
   File? _selectedImage;
-  int _numQuestions = 8;
-  int _numChoices = 4;
   String? _tempIdResult;
-  // removed manual lookup fields
+  List<Exam> _exams = [];
+  Exam? _selectedExam;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExams();
+  }
+
+  Future<void> _loadExams() async {
+    final exams = await DatabaseHelper().getAllExams();
+    setState(() {
+      _exams = exams;
+    });
+  }
   Future<void> _pickImageFromCamera() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera);
@@ -122,6 +138,10 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   }
 
   Future<void> _runOmrScan() async {
+    if (_selectedExam == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an exam first')));
+      return;
+    }
     if (_selectedImage == null) {
       setState(() {
         _scanResult = 'Please upload or capture an image first.';
@@ -136,24 +156,76 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
       final imagePath = _selectedImage!.path;
       final omr = OMRScanner();
       final result = omr.processImage(imagePath);
-      final answers = result['answers'] as List<int>;
+      final scannedAnswers = result['answers'] as List<int>;
       final idDigits = result['id'] as List<int>;
-      List<String> results = [];
-      for (int i = 0; i < answers.length; i++) {
-        if (answers[i] == -1) {
-          results.add('Q${i + 1}: Blank');
-        } else if (answers[i] == -2) {
-          results.add('Q${i + 1}: Multi-marked!');
-        } else {
-          results.add('Q${i + 1}: ${String.fromCharCode(65 + answers[i])}');
+      final studentIdStr = idDigits.join();
+
+      // Fetch correct answers for this exam
+      final db = DatabaseHelper();
+      final correctQuestions = await db.getQuestionsByExamId(_selectedExam!.id!);
+      
+      int totalMaxMark = 0;
+      int studentMark = 0;
+      List<Map<String, dynamic>> answerData = [];
+
+      for (int i = 0; i < scannedAnswers.length; i++) {
+        final qNum = i + 1;
+        // Find matching correct question from DB
+        final correctQ = correctQuestions.firstWhere((q) => q.questionNumber == qNum, orElse: () => Question(examId: -1, questionNumber: -1, correctChoice: -1, mark: 0));
+        
+        String selectedLabel = 'Blank';
+        if (scannedAnswers[i] >= 0) {
+          selectedLabel = String.fromCharCode(65 + scannedAnswers[i]);
+        } else if (scannedAnswers[i] == -2) {
+          selectedLabel = 'Multi';
         }
+
+        String correctLabel = 'N/A';
+        if (correctQ.correctChoice >= 0) {
+          correctLabel = String.fromCharCode(65 + correctQ.correctChoice);
+        }
+
+        bool isCorrect = (scannedAnswers[i] == correctQ.correctChoice) && (scannedAnswers[i] >= 0);
+        
+        if (correctQ.id != null && correctQ.id != -1) {
+          totalMaxMark += correctQ.mark;
+          if (isCorrect) studentMark += correctQ.mark;
+        }
+
+        answerData.add({
+          'question': qNum,
+          'selected': selectedLabel,
+          'correct': correctLabel,
+          'isCorrect': isCorrect,
+        });
       }
+
+      int scorePercentage = totalMaxMark > 0 ? ((studentMark / totalMaxMark) * 100).round() : 0;
+
+      // Lookup student name
+      final student = await db.getStudentByStudentId(studentIdStr);
+      final studentName = student?.name ?? 'Unknown Student';
+
+      // Save result to database
+      final resultToSave = Result(
+        examId: _selectedExam!.id!,
+        studentId: studentIdStr,
+        studentName: studentName,
+        score: scorePercentage,
+        answers: jsonEncode(answerData),
+        date: DateTime.now().toIso8601String(),
+      );
+      await db.insertResult(resultToSave);
+
       setState(() {
         _scanResult =
-            'Detected ${answers.length} Questions dynamically.\n\nResult per question:\n${results.join("\n")}';
+            'Exam: ${_selectedExam!.title}\nStudent: $studentName\nScore: $scorePercentage%\nID: $studentIdStr\n\nResult per question:\n${answerData.map((a) => "Q${a['question']}: ${a['selected']} (${a['isCorrect'] ? 'Correct' : 'Wrong'})").join("\n")}';
         _tempIdResult =
-            'Extracted ID (${idDigits.length} digits): ${idDigits.join()}';
+            'Extracted ID: $studentIdStr';
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Result saved to database!')));
+
     } catch (e) {
       setState(() {
         _scanResult = 'Error during scanning:\n$e';
@@ -183,6 +255,26 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Exam Selection Card
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: DropdownButtonFormField<Exam>(
+                    decoration: InputDecoration(
+                      labelText: loc.createExam, // Or better, a new translation for "Select Exam"
+                      prefixIcon: const Icon(Icons.assignment, color: Color(0xFF007BFF)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    value: _selectedExam,
+                    items: _exams.map((e) => DropdownMenuItem(value: e, child: Text('${e.title} (${e.subject})'))).toList(),
+                    onChanged: (v) => setState(() => _selectedExam = v),
+                    validator: (v) => v == null ? 'Please select an exam' : null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Student file upload card
               //base
               Card(

@@ -1,13 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:omr1/db/database_helper.dart';
+import 'package:omr1/models/exam.dart';
+import 'dart:convert';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:omr1/screens/exam_results_screen.dart';
 
-class ResultsOverviewScreen extends StatelessWidget {
+class ResultsOverviewScreen extends StatefulWidget {
   const ResultsOverviewScreen({super.key});
 
   @override
+  State<ResultsOverviewScreen> createState() => _ResultsOverviewScreenState();
+}
+
+class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
+  List<Map<String, dynamic>> _examSummaries = [];
+  int _totalExams = 0;
+  int _totalSheets = 0;
+  double _avgScore = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final db = DatabaseHelper();
+    final exams = await db.getAllExams();
+    _totalExams = exams.length;
+    _totalSheets = 0;
+    double totalScoreSum = 0;
+    int totalResultCount = 0;
+
+    List<Map<String, dynamic>> summaries = [];
+
+    for (var exam in exams) {
+      final results = await db.getResultsByExamId(exam.id!);
+      _totalSheets += results.length;
+      
+      for (var r in results) {
+        totalScoreSum += r.score;
+        totalResultCount++;
+      }
+
+      // Use pre-stored student names for each result with a fallback lookup
+      List<Map<String, dynamic>> studentResults = [];
+      for (var r in results) {
+        String displayName = r.studentName;
+        
+        // Auto-repair: If the stored name is "Unknown", try finding it now
+        if (displayName == 'Unknown Student') {
+          final student = await db.getStudentByStudentId(r.studentId);
+          if (student != null) {
+            displayName = student.name;
+          }
+        }
+
+        studentResults.add({
+          'id': r.studentId,
+          'name': displayName,
+          'score': r.score,
+          'answers': List<Map<String, dynamic>>.from(jsonDecode(r.answers)),
+        });
+      }
+
+      summaries.add({
+        'exam': exam,
+        'count': results.length,
+        'studentResults': studentResults,
+      });
+    }
+
+    _avgScore = totalResultCount > 0 ? (totalScoreSum / totalResultCount) : 0;
+
+    if (mounted) {
+      setState(() {
+        _examSummaries = summaries;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!; // Access localization
+    final loc = AppLocalizations.of(context)!;
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(loc.resultsOverview)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
@@ -29,152 +112,53 @@ class ResultsOverviewScreen extends StatelessWidget {
                   children: [
                     _ResultSummaryCard(
                       icon: Icons.assignment,
-                      value: '12',
-                      label: loc.totalExams, // Localized
-                      color: Color(0xFF007BFF),
+                      value: _totalExams.toString(),
+                      label: loc.totalExams,
+                      color: const Color(0xFF007BFF),
                     ),
                     _ResultSummaryCard(
                       icon: Icons.document_scanner,
-                      value: '340',
-                      label: loc.sheets, // Localized
-                      color: Color(0xFF43A047),
+                      value: _totalSheets.toString(),
+                      label: loc.sheets,
+                      color: const Color(0xFF43A047),
                     ),
                     _ResultSummaryCard(
                       icon: Icons.bar_chart,
-                      value: '78%',
-                      label: loc.avgScore, // Localized
-                      color: Color(0xFFFB8C00),
+                      value: '${_avgScore.toStringAsFixed(1)}%',
+                      label: loc.avgScore,
+                      color: const Color(0xFFFB8C00),
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 32),
-            Text(loc.recentScans, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // Localized
+            Text(loc.recentScans, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _ResultListTile(
-              title: 'Math Final',
-              date: '18/6/2025',
-              score: '3 Sheets',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ExamResultsScreen(
-                      examTitle: 'Math Final',
-                      date: '18/6/2025',
-                      students: [
-                        {
-                          'id': 'S001',
-                          'name': 'Ali',
-                          'score': 92,
-                          'answers': [
-                            {'question': 1, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                            {'question': 2, 'selected': 'B', 'correct': 'C', 'isCorrect': false},
-                            {'question': 3, 'selected': 'D', 'correct': 'D', 'isCorrect': true},
-                            {'question': 4, 'selected': 'C', 'correct': 'C', 'isCorrect': true},
-                            {'question': 5, 'selected': 'B', 'correct': 'B', 'isCorrect': true},
-                          ],
-                        },
-                        {
-                          'id': 'S002',
-                          'name': 'Ahmed',
-                          'score': 88,
-                          'answers': [
-                            {'question': 1, 'selected': 'B', 'correct': 'A', 'isCorrect': false},
-                            {'question': 2, 'selected': 'C', 'correct': 'C', 'isCorrect': true},
-                            {'question': 3, 'selected': 'D', 'correct': 'D', 'isCorrect': true},
-                            {'question': 4, 'selected': 'A', 'correct': 'C', 'isCorrect': false},
-                            {'question': 5, 'selected': 'B', 'correct': 'B', 'isCorrect': true},
-                          ],
-                        },
-                        {
-                          'id': 'S003',
-                          'name': 'Mohammed',
-                          'score': 75,
-                          'answers': [
-                            {'question': 1, 'selected': 'C', 'correct': 'A', 'isCorrect': false},
-                            {'question': 2, 'selected': 'B', 'correct': 'C', 'isCorrect': false},
-                            {'question': 3, 'selected': 'D', 'correct': 'D', 'isCorrect': true},
-                            {'question': 4, 'selected': 'C', 'correct': 'C', 'isCorrect': true},
-                            {'question': 5, 'selected': 'B', 'correct': 'B', 'isCorrect': true},
-                          ],
-                        },
-                      ],
+            if (_examSummaries.isEmpty)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text('No results found yet. Start scanning to see scores!'),
+              )),
+            ..._examSummaries.map((summary) {
+              final Exam exam = summary['exam'];
+              return _ResultListTile(
+                title: exam.title,
+                date: exam.date.split('T').first, // Simple date display
+                score: '${summary['count']} Sheets',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExamResultsScreen(
+                        examTitle: exam.title,
+                        date: exam.date.split('T').first,
+                        students: List<Map<String, dynamic>>.from(summary['studentResults']),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-            _ResultListTile(
-              title: 'Science Quiz',
-              date: '15/6/2025',
-              score: '2 Sheets',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ExamResultsScreen(
-                      examTitle: 'Science Quiz',
-                      date: '15/6/2025',
-                      students: [
-                        {
-                          'id': 'S002',
-                          'name': 'Ahmed',
-                          'score': 85,
-                          'answers': [
-                            {'question': 1, 'selected': 'B', 'correct': 'B', 'isCorrect': true},
-                            {'question': 2, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                            {'question': 3, 'selected': 'C', 'correct': 'D', 'isCorrect': false},
-                            {'question': 4, 'selected': 'D', 'correct': 'D', 'isCorrect': true},
-                            {'question': 5, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                          ],
-                        },
-                        {
-                          'id': 'S003',
-                          'name': 'Mohammed',
-                          'score': 80,
-                          'answers': [
-                            {'question': 1, 'selected': 'C', 'correct': 'B', 'isCorrect': false},
-                            {'question': 2, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                            {'question': 3, 'selected': 'C', 'correct': 'D', 'isCorrect': false},
-                            {'question': 4, 'selected': 'D', 'correct': 'D', 'isCorrect': true},
-                            {'question': 5, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                          ],
-                        },
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            _ResultListTile(
-              title: 'History Midterm',
-              date: '10/6/2025',
-              score: '1 Sheet',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ExamResultsScreen(
-                      examTitle: 'History Midterm',
-                      date: '10/6/2025',
-                      students: [
-                        {
-                          'id': 'S003',
-                          'name': 'Saleh',
-                          'score': 78,
-                          'answers': [
-                            {'question': 1, 'selected': 'C', 'correct': 'C', 'isCorrect': true},
-                            {'question': 2, 'selected': 'D', 'correct': 'B', 'isCorrect': false},
-                            {'question': 3, 'selected': 'A', 'correct': 'A', 'isCorrect': true},
-                            {'question': 4, 'selected': 'B', 'correct': 'B', 'isCorrect': true},
-                            {'question': 5, 'selected': 'C', 'correct': 'D', 'isCorrect': false},
-                          ],
-                        },
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              );
+            }).toList(),
           ],
         ),
       ),
