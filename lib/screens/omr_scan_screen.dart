@@ -135,25 +135,28 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     try {
       final imagePath = _selectedImage!.path;
       final omr = OMRScanner();
-      final result = omr.processImage(imagePath, idDigits: 6, numQuestions: 8, numChoices: 5);
+      final result = omr.processImage(imagePath);
       final answers = result['answers'] as List<int>;
       final idDigits = result['id'] as List<int>;
       List<String> results = [];
       for (int i = 0; i < answers.length; i++) {
         if (answers[i] == -1) {
           results.add('Q${i + 1}: Blank');
+        } else if (answers[i] == -2) {
+          results.add('Q${i + 1}: Multi-marked!');
         } else {
           results.add('Q${i + 1}: ${String.fromCharCode(65 + answers[i])}');
         }
       }
       setState(() {
         _scanResult =
-            'Answers (index per row, -1=blank):\n${answers.toString()}\n\nResult per question:\n${results.join("\n")}';
-        _tempIdResult = 'Extracted ID: ${idDigits.join()}';
+            'Detected ${answers.length} Questions dynamically.\n\nResult per question:\n${results.join("\n")}';
+        _tempIdResult =
+            'Extracted ID (${idDigits.length} digits): ${idDigits.join()}';
       });
     } catch (e) {
       setState(() {
-        _scanResult = 'Error:\n$e';
+        _scanResult = 'Error during scanning:\n$e';
         _tempIdResult = null;
       });
     }

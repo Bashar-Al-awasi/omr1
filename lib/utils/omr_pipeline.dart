@@ -1,6 +1,5 @@
 import 'package:opencv_dart/opencv_dart.dart';
 
-
 class OMRScanner {
   final int questions = 5;
   final int choices = 5;
@@ -32,26 +31,59 @@ class OMRScanner {
 
   /// Count non-zero pixels like cv2.countNonZero
   int countNonZeroBox(Mat image) {
-  // Use a robust center square crop instead of unavailable bitwise_and/circle
-  int w = image.cols;
-  int h = image.rows;
-  int cropSize = ((w < h ? w : h) * 0.6).toInt();
-  double cx = w / 2.0;
-  double cy = h / 2.0;
-  // Use getRectSubPix to extract a center square region
-  final centerBox = getRectSubPix(image, (cropSize, cropSize), Point2f(cx, cy));
-  return countNonZero(centerBox);
+    // Use a robust center square crop instead of unavailable bitwise_and/circle
+    int w = image.cols;
+    int h = image.rows;
+    int cropSize = ((w < h ? w : h) * 0.6).toInt();
+    double cx = w / 2.0;
+    double cy = h / 2.0;
+    // Use getRectSubPix to extract a center square region
+    final centerBox =
+        getRectSubPix(image, (cropSize, cropSize), Point2f(cx, cy));
+    return countNonZero(centerBox);
   }
 
-  List<List<int>> reorder(List<List<int>> points) {
-    List<List<int>> newPoints = List.generate(4, (_) => [0, 0]);
-    List<int> add = points.map((p) => p[0] + p[1]).toList();
-    List<int> diff = points.map((p) => p[1] - p[0]).toList();
-    newPoints[0] = points[add.indexOf(add.reduce((a, b) => a < b ? a : b))]; // top-left
-    newPoints[3] = points[add.indexOf(add.reduce((a, b) => a > b ? a : b))]; // bottom-right
-    newPoints[1] = points[diff.indexOf(diff.reduce((a, b) => a < b ? a : b))]; // top-right
-    newPoints[2] = points[diff.indexOf(diff.reduce((a, b) => a > b ? a : b))]; // bottom-left
-    return newPoints;
+  VecPoint reorder(VecPoint points) {
+    if (points.length != 4) return points;
+    List<Point> pts = points.toList();
+
+    List<int> sums = pts.map((p) => p.x + p.y).toList();
+    List<int> diffs = pts.map((p) => p.y - p.x).toList();
+
+    int tl_idx = 0;
+    int minSum = sums[0];
+    int br_idx = 0;
+    int maxSum = sums[0];
+    int tr_idx = 0;
+    int minDiff = diffs[0];
+    int bl_idx = 0;
+    int maxDiff = diffs[0];
+
+    for (int i = 1; i < 4; i++) {
+      if (sums[i] < minSum) {
+        tl_idx = i;
+        minSum = sums[i];
+      }
+      if (sums[i] > maxSum) {
+        br_idx = i;
+        maxSum = sums[i];
+      }
+      if (diffs[i] < minDiff) {
+        tr_idx = i;
+        minDiff = diffs[i];
+      }
+      if (diffs[i] > maxDiff) {
+        bl_idx = i;
+        maxDiff = diffs[i];
+      }
+    }
+
+    return VecPoint.fromList([
+      pts[tl_idx],
+      pts[tr_idx],
+      pts[br_idx],
+      pts[bl_idx],
+    ]);
   }
 
   List<VecPoint> rectContour(VecVecPoint contours) {
@@ -71,152 +103,238 @@ class OMRScanner {
     return rectCon;
   }
 
-  /// Process image and extract both ID and answers, matching the PDF structure
-  Map<String, dynamic> processImage(String imagePath, {int idDigits = 6, int numQuestions = 8, int numChoices = 5}) {
+  /// Crop the document using 4 Page markers
+  List<int> clusterCoordinates(List<int> vals,
+      {int dist = 15, int minBubbles = 3}) {
+    if (vals.isEmpty) return [];
+    vals.sort();
+    List<List<int>> groups = [];
+    for (int v in vals) {
+      if (groups.isEmpty || (v - groups.last.last) > dist) {
+        groups.add([v]);
+      } else {
+        groups.last.add(v);
+      }
+    }
+    // Filter for "Significant Clusters" (clusters that have enough bubbles to be a real line)
+    List<List<int>> significant =
+        groups.where((g) => g.length >= minBubbles).toList();
+
+    // Fallback: If no significant clusters found, return all groups to avoid total failure
+    if (significant.isEmpty) significant = groups;
+
+    return significant.map((g) {
+      int sum = g.reduce((a, b) => a + b);
+      return (sum / g.length).round();
+    }).toList()
+      ..sort();
+  }
+
+  /// Process image and extract both ID and answers dynamically
+  Map<String, dynamic> processImage(String imagePath) {
     // 1. Load and preprocess image
-    final img = imread(imagePath);
-    final imgResized = resize(img, (widthImg, heightImg));
-    final imgGray = cvtColor(imgResized, 6); // 6 = COLOR_BGR2GRAY
+    final rawImg = imread(imagePath);
+    // Scale image proportionally for robust feature detection
+    double scale = 1500.0 / rawImg.rows;
+    int newWidth = (rawImg.cols * scale).toInt();
+    final img = resize(rawImg, (newWidth, 1500));
+    final imgGray = cvtColor(img, 6); // 6 = COLOR_BGR2GRAY
     final imgBlur = gaussianBlur(imgGray, (5, 5), 1);
     final imgThresh = adaptiveThreshold(imgBlur, 255, 0, 1, 11, 2);
 
-    // 2. Find all contours (potential markers)
-    final markerContoursTuple = findContours(imgThresh, 0, 2);
-    final markerContours = markerContoursTuple.$1;
-    // Filter for large black squares (corner markers)
-    List<List<int>> markerCenters = [];
-    for (var cont in markerContours) {
+    // Apply morphological closing to heal shadows/glare on the frame lines
+    final kernel = getStructuringElement(0, (5, 5));
+    final imgClosed = morphologyEx(imgThresh, 3, kernel);
+
+    // 2. Locate the ID and Answer Framing boxes
+    final contoursTuple = findContours(imgClosed, 3, 2);
+    final contours = contoursTuple.$1;
+
+    List<Map<String, dynamic>> distFrames = [];
+    for (var cont in contours) {
       final area = contourArea(cont);
-      if (area > 80 && area < 400) { // adjust for marker size
-        final rect = boundingRect(cont);
-        final cx = rect.x + rect.width ~/ 2;
-        final cy = rect.y + rect.height ~/ 2;
-        markerCenters.add([cx, cy]);
-      }
-    }
-    // Sort markers by y, then x
-    markerCenters.sort((a, b) => a[1] == b[1] ? a[0] - b[0] : a[1] - b[1]);
-    if (markerCenters.length < 8) throw Exception('Not all inner corner markers found');
-
-    // Assign markers: first 4 are ID section, next 4 are answer section
-    final idMarkers = markerCenters.sublist(0, 4);
-    final ansMarkers = markerCenters.sublist(4, 8);
-
-    // Order markers: TL, TR, BL, BR
-    List<List<int>> orderMarkers(List<List<int>> pts) {
-      List<List<int>> ordered = List.generate(4, (_) => [0, 0]);
-      List<int> add = pts.map((p) => p[0] + p[1]).toList();
-      List<int> diff = pts.map((p) => p[1] - p[0]).toList();
-      ordered[0] = pts[add.indexOf(add.reduce((a, b) => a < b ? a : b))]; // TL
-      ordered[3] = pts[add.indexOf(add.reduce((a, b) => a > b ? a : b))]; // BR
-      ordered[1] = pts[diff.indexOf(diff.reduce((a, b) => a < b ? a : b))]; // TR
-      ordered[2] = pts[diff.indexOf(diff.reduce((a, b) => a > b ? a : b))]; // BL
-      return ordered;
-    }
-    final idOrdered = orderMarkers(idMarkers);
-    final ansOrdered = orderMarkers(ansMarkers);
-
-    // Perspective transform for ID region
-    final idW = ((idOrdered[1][0] - idOrdered[0][0]).abs() + (idOrdered[3][0] - idOrdered[2][0]).abs()) ~/ 2;
-    final idH = ((idOrdered[2][1] - idOrdered[0][1]).abs() + (idOrdered[3][1] - idOrdered[1][1]).abs()) ~/ 2;
-    final idSrc = VecPoint.fromList([
-      Point(idOrdered[0][0], idOrdered[0][1]),
-      Point(idOrdered[1][0], idOrdered[1][1]),
-      Point(idOrdered[2][0], idOrdered[2][1]),
-      Point(idOrdered[3][0], idOrdered[3][1]),
-    ]);
-    final idDst = VecPoint.fromList([
-      Point(0, 0),
-      Point(idW, 0),
-      Point(0, idH),
-      Point(idW, idH),
-    ]);
-    final idMatrix = getPerspectiveTransform(idSrc, idDst);
-    final idRegion = warpPerspective(imgThresh, idMatrix, (idW, idH));
-
-    // Perspective transform for answer region
-    final ansW = ((ansOrdered[1][0] - ansOrdered[0][0]).abs() + (ansOrdered[3][0] - ansOrdered[2][0]).abs()) ~/ 2;
-    final ansH = ((ansOrdered[2][1] - ansOrdered[0][1]).abs() + (ansOrdered[3][1] - ansOrdered[1][1]).abs()) ~/ 2;
-    final ansSrc = VecPoint.fromList([
-      Point(ansOrdered[0][0], ansOrdered[0][1]),
-      Point(ansOrdered[1][0], ansOrdered[1][1]),
-      Point(ansOrdered[2][0], ansOrdered[2][1]),
-      Point(ansOrdered[3][0], ansOrdered[3][1]),
-    ]);
-    final ansDst = VecPoint.fromList([
-      Point(0, 0),
-      Point(ansW, 0),
-      Point(0, ansH),
-      Point(ansW, ansH),
-    ]);
-    final ansMatrix = getPerspectiveTransform(ansSrc, ansDst);
-    final ansRegion = warpPerspective(imgThresh, ansMatrix, (ansW, ansH));
-
-    // Split ID region into boxes (10 rows × idDigits columns)
-    final idBoxes = <Mat>[];
-    int idBoxHeight = (idRegion.rows / 10).floor();
-    int idBoxWidth = (idRegion.cols / idDigits).floor();
-    for (int r = 0; r < 10; r++) {
-      for (int c = 0; c < idDigits; c++) {
-        int startY = r * idBoxHeight;
-        int startX = c * idBoxWidth;
-        int endY = (r == 9) ? idRegion.rows : (startY + idBoxHeight);
-        int endX = (c == idDigits - 1) ? idRegion.cols : (startX + idBoxWidth);
-        int w = endX - startX;
-        int h = endY - startY;
-        double cx = startX + w / 2.0;
-        double cy = startY + h / 2.0;
-        final box = getRectSubPix(idRegion, (w, h), Point2f(cx, cy));
-        idBoxes.add(box);
-      }
-    }
-    List<int> idDigitsResult = [];
-    for (int d = 0; d < idDigits; d++) {
-      int detected = -1;
-      int maxVal = 0;
-      for (int i = 0; i < 10; i++) {
-        final box = idBoxes[i * idDigits + d];
-        int val = countNonZeroBox(box);
-        if (val > maxVal && val > 100) {
-          maxVal = val;
-          detected = i;
+      if (area > 15000) {
+        final peri = arcLength(cont, true);
+        final approx = approxPolyDP(cont, 0.02 * peri, true);
+        if (approx.length == 4) {
+          final rect = boundingRect(approx);
+          bool overlap = false;
+          for (var db in distFrames) {
+            if ((rect.x - (db['x'] as int)).abs() < 50 &&
+                (rect.y - (db['y'] as int)).abs() < 50) {
+              overlap = true;
+              if (area > (db['area'] as double)) {
+                db['x'] = rect.x;
+                db['y'] = rect.y;
+                db['w'] = rect.width;
+                db['h'] = rect.height;
+                db['area'] = area;
+                db['cnt'] = approx;
+              }
+              break;
+            }
+          }
+          if (!overlap) {
+            distFrames.add({
+              'x': rect.x,
+              'y': rect.y,
+              'w': rect.width,
+              'h': rect.height,
+              'area': area,
+              'cnt': approx
+            });
+          }
         }
       }
-      idDigitsResult.add(detected);
     }
 
-    // Split answer region into boxes (numQuestions × numChoices)
-    final ansBoxes = <Mat>[];
-    int ansBoxHeight = (ansRegion.rows / numQuestions).floor();
-    int ansBoxWidth = (ansRegion.cols / numChoices).floor();
-    for (int r = 0; r < numQuestions; r++) {
-      for (int c = 0; c < numChoices; c++) {
-        int startY = r * ansBoxHeight;
-        int startX = c * ansBoxWidth;
-        int endY = (r == numQuestions - 1) ? ansRegion.rows : (startY + ansBoxHeight);
-        int endX = (c == numChoices - 1) ? ansRegion.cols : (startX + ansBoxWidth);
-        int w = endX - startX;
-        int h = endY - startY;
-        double cx = startX + w / 2.0;
-        double cy = startY + h / 2.0;
-        final box = getRectSubPix(ansRegion, (w, h), Point2f(cx, cy));
-        ansBoxes.add(box);
+    if (distFrames.isEmpty)
+      throw Exception(
+          'No thick framing boxes found on the page at all. Ensure paper is well lit.');
+
+    Map<String, dynamic>? idFrame;
+    Map<String, dynamic>? ansFrame;
+
+    for (var f in distFrames) {
+      double aspect = f['w'] / f['h'];
+      if (aspect > 1.2 && aspect < 4.0) {
+        if (ansFrame == null || f['area'] > ansFrame['area']) ansFrame = f;
+      } else if (aspect > 0.3 && aspect <= 1.2) {
+        if (idFrame == null || f['area'] > idFrame['area']) idFrame = f;
       }
     }
-    List<int> answers = [];
-    for (int q = 0; q < numQuestions; q++) {
-      int detected = -1;
-      int maxVal = 0;
-      for (int c = 0; c < numChoices; c++) {
-        final box = ansBoxes[q * numChoices + c];
-        int val = countNonZeroBox(box);
-        if (val > maxVal && val > 100) {
-          maxVal = val;
-          detected = c;
+
+    if (ansFrame == null || idFrame == null) {
+      String debug = distFrames.map((f) => '${f['w']}x${f['h']}').join(', ');
+      throw Exception('Could not distinguish boxes. Found: $debug');
+    }
+
+    // 3. Perspective Warp and Fixed Coordinate Read
+    List<int> solveSection(Map<String, dynamic> frame, bool isId) {
+      final Size targetSize = isId ? Size(400, 600) : Size(800, 500);
+      final VecPoint src = reorder(frame['cnt'] as VecPoint);
+      final VecPoint dst = VecPoint.fromList([
+        Point(0, 0),
+        Point(targetSize.width.toInt(), 0),
+        Point(targetSize.width.toInt(), targetSize.height.toInt()),
+        Point(0, targetSize.height.toInt()),
+      ]);
+
+      final mat = getPerspectiveTransform(src, dst);
+      final warpedColor = warpPerspective(
+          img, mat, (targetSize.width.toInt(), targetSize.height.toInt()));
+      final warpedGray = cvtColor(warpedColor, 6);
+      final warpedThreshTuple =
+          threshold(warpedGray, 0, 255, 8 + 1); // OTSU + BINARY_INV
+      final Mat warpedThresh = warpedThreshTuple.$2;
+
+      // 1. Detect all bubbles in the warped section
+      final warpedCntsTuple = findContours(warpedThresh, 3, 2);
+      final warpedCnts = warpedCntsTuple.$1;
+      List<Point> seeds = [];
+      for (var c in warpedCnts) {
+        final r = boundingRect(c);
+        final a = contourArea(c);
+        if (r.width / r.height > 0.6 &&
+            r.width / r.height < 1.4 &&
+            a > 100 &&
+            a < 1500) {
+          seeds.add(
+              Point((r.x + r.width / 2).toInt(), (r.y + r.height / 2).toInt()));
         }
       }
-      answers.add(detected);
+
+      // 2. Discover the Grid via significant clusters (Autonomous)
+      // ID uses min 5 bubbles per column, Answers uses min 4
+      List<int> rowLattice = clusterCoordinates(seeds.map((p) => p.y).toList(),
+          minBubbles: isId ? 3 : 4);
+      List<int> colLattice = clusterCoordinates(seeds.map((p) => p.x).toList(),
+          minBubbles: isId ? 5 : 5);
+
+      // Fallback for ID: If 10 rows not found, use historical defaults for your specific form
+      if (isId && rowLattice.length != 10)
+        rowLattice = [110, 160, 210, 260, 310, 360, 410, 460, 510, 560];
+
+      List<int> results = [];
+      const int bS = 12; // Sampling Box size
+      const int minFilledPixels = 150;
+
+      if (isId) {
+        for (int cx in colLattice) {
+          int det = -1;
+          int mVal = 0;
+          for (int r = 0; r < rowLattice.length; r++) {
+            final b = warpedThresh
+                .region(Rect(cx - bS, rowLattice[r] - bS, bS * 2, bS * 2));
+            int val = countNonZero(b);
+            if (val > mVal && val > minFilledPixels) {
+              mVal = val;
+              det = r;
+            }
+          }
+          results.add(det);
+        }
+      } else {
+        // ANS: Dynamically group columns into choice blocks using gap analysis
+        if (colLattice.length < 2) return [];
+
+        // Find median gap to distinguish choices vs gutters
+        List<int> gaps = [];
+        for (int i = 0; i < colLattice.length - 1; i++)
+          gaps.add(colLattice[i + 1] - colLattice[i]);
+        gaps.sort();
+        int medianGap = gaps[gaps.length ~/ 2];
+
+        List<List<int>> blocks = [];
+        List<int> curr = [colLattice[0]];
+        for (int i = 0; i < colLattice.length - 1; i++) {
+          if (colLattice[i + 1] - colLattice[i] < medianGap * 1.8) {
+            curr.add(colLattice[i + 1]);
+          } else {
+            blocks.add(curr);
+            curr = [colLattice[i + 1]];
+          }
+        }
+        blocks.add(curr);
+
+        // Filter out blocks that represent question numbers (usually small counts)
+        final choiceBlocks = blocks.where((b) => b.length >= 2).toList();
+
+        for (var b in choiceBlocks) {
+          for (int ry in rowLattice) {
+            // Check if this specific row-block intersection actually contains bubbles
+            // (Distinguishes between a blank question and a non-existent one)
+            bool rowExistsInBlock = seeds.any((s) =>
+                (s.y - ry).abs() < 15 &&
+                s.x >= b.first - 20 &&
+                s.x <= b.last + 20);
+            if (!rowExistsInBlock) continue;
+
+            int det = -1;
+            int mVal = 0;
+            int filledCount = 0;
+            for (int c = 0; c < b.length; c++) {
+              final box =
+                  warpedThresh.region(Rect(b[c] - bS, ry - bS, bS * 2, bS * 2));
+              int val = countNonZero(box);
+              if (val > minFilledPixels) {
+                filledCount++;
+                if (val > mVal) {
+                  mVal = val;
+                  det = c;
+                }
+              }
+            }
+            // If more than one choice is shaded, return the "Multi" code (-2)
+            results.add(filledCount > 1 ? -2 : det);
+          }
+        }
+      }
+      return results;
     }
+
+    final idDigitsResult = solveSection(idFrame, true);
+    final answers = solveSection(ansFrame, false);
 
     return {
       'id': idDigitsResult,
