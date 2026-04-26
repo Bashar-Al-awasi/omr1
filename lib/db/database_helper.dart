@@ -41,7 +41,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 2, // Reverting to version 2 since we are removing the sync columns
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -171,5 +171,38 @@ class DatabaseHelper {
   Future<void> clearResults() async {
     final database = await db;
     await database.delete('results');
+  }
+
+  // Dashboard Stats
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    final database = await db;
+    
+    final examCount = Sqflite.firstIntValue(await database.rawQuery('SELECT COUNT(*) FROM exams')) ?? 0;
+    final resultCount = Sqflite.firstIntValue(await database.rawQuery('SELECT COUNT(*) FROM results')) ?? 0;
+    
+    final avgScoreRes = await database.rawQuery('SELECT AVG(score) as avgScore FROM results');
+    double avgScore = 0;
+    if (avgScoreRes.isNotEmpty && avgScoreRes.first['avgScore'] != null) {
+      avgScore = (avgScoreRes.first['avgScore'] as num).toDouble();
+    }
+
+    return {
+      'totalExams': examCount,
+      'totalSheets': resultCount,
+      'avgScore': avgScore,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentScans(int limit) async {
+    final database = await db;
+    // Join with exams to get the title
+    final List<Map<String, dynamic>> res = await database.rawQuery('''
+      SELECT r.*, e.title as exam_title 
+      FROM results r
+      JOIN exams e ON r.exam_id = e.id
+      ORDER BY r.date DESC
+      LIMIT ?
+    ''', [limit]);
+    return res;
   }
 }

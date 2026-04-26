@@ -7,7 +7,7 @@
   "scanButton": "مسح ورقة الإجابة",
   "resultsButton": "عرض النتائج",
   "passwordLabel": "كلمة المرور",
-  "orLabel": "أو",
+  "orLabel": "أأو",
   "emailLabel": "البريد الإلكتروني",
   "loginButton": "تسجيل الدخول",
   "loginWithGoogle": "تسجيل الدخول عبر جوجل",
@@ -75,5 +75,18 @@
   "androidSaveHint": "في أندرويد، سيتم مطالبتك باختيار مكان واسم الملف.",
   "pdfSaved": "تم حفظ ملف PDF!",
   "pdfSavedTo": "تم حفظ ملف PDF في",
-  "cancel": "إلغاء"
+  "cancel": "إلغاء",
+  "noScansYet": "لا توجد مسحات مؤخراً",
+  "graded": "تم التصحيح",
+  "pending": "قيد الانتظار",
+  "coreActions": "الإجراءات الأساسية",
+  "viewAll": "عرض الكل",
+  "newListInfo": "معلومات القائمة الجديدة",
+  "title": "العنوان",
+  "importLabel": "استيراد",
+  "importComplete": "اكتمل الاستيراد",
+  "importFailed": "فشل الاستيراد: {error}",
+  "noStudentsImported": "لم يتم استيراد طلاب",
+  "studentsCount": "{count} طلاب",
+  "importDetailsSubtitle": "يرجى تقديم تفاصيل قائمة الطلاب"
 }

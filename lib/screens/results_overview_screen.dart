@@ -136,16 +136,16 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
             Text(loc.recentScans, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (_examSummaries.isEmpty)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text('No results found yet. Start scanning to see scores!'),
+              Center(child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(loc.noScansYet),
               )),
             ..._examSummaries.map((summary) {
               final Exam exam = summary['exam'];
               return _ResultListTile(
                 title: exam.title,
                 date: exam.date.split('T').first, // Simple date display
-                score: '${summary['count']} Sheets',
+                score: '${summary['count']} ${loc.sheets}',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
