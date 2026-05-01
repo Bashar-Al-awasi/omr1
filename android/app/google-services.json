@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "104805243192",
+    "project_id": "smart-omr-1b223",
+    "storage_bucket": "smart-omr-1b223.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:104805243192:android:f9f44a9e319587c37489cd",
+        "android_client_info": {
+          "package_name": "com.example.omr1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOUjeMPerdmlI5F2m1zpFp_6nzqMjLMd4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

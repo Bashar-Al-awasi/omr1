@@ -5,6 +5,7 @@ class Student {
   final String? subject;
   final String? notes;
   final String? title;
+  final String? userId;
 
   Student({
     this.id,
@@ -13,6 +14,7 @@ class Student {
     this.subject,
     this.notes,
     this.title,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +25,7 @@ class Student {
       'subject': subject,
       'notes': notes,
       'title': title,
+      'user_id': userId,
     };
   }
 
@@ -34,6 +37,7 @@ class Student {
       subject: m['subject'] as String?,
       notes: m['notes'] as String?,
       title: m['title'] as String?,
+      userId: m['user_id'] as String?,
     );
   }
 }

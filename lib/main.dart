@@ -1,20 +1,29 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:omr1/screens/welcome_screen.dart';
-import 'package:provider/provider.dart'; // 1. Import provider
-import 'locale_provider.dart'; // 2. Import your provider
+import 'package:provider/provider.dart';
+import 'locale_provider.dart';
 import 'screens/home_dashboard_screen.dart';
 import 'providers/student_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/sync_provider.dart';
 import 'screens/student_list_screen.dart';
 
-
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider(create: (_) => StudentProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, StudentProvider>(
+          create: (_) => StudentProvider(),
+          update: (_, auth, student) => student!..updateUserId(auth.userId),
+        ),
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
       ],
       child: const OmrApp(),
     ),
@@ -26,8 +35,9 @@ class OmrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 3. Listen to the provider for locale changes
     final localeProvider = Provider.of<LocaleProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return MaterialApp(
       title: 'Smart OMR',
       debugShowCheckedModeBanner: false,
@@ -70,7 +80,7 @@ class OmrApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const WelcomeScreen(), // Use WelcomeScreen from the new file
+      home: authProvider.user == null ? const WelcomeScreen() : const HomeDashboardScreen(),
       routes: {
         '/home': (_) => const HomeDashboardScreen(),
         '/students': (_) => const StudentListScreen(),
@@ -78,4 +88,3 @@ class OmrApp extends StatelessWidget {
     );
   }
 }
-//test for git uplouad

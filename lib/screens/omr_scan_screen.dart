@@ -12,6 +12,8 @@ import '../models/exam.dart';
 import '../models/result.dart';
 import '../models/question.dart';
 import 'dart:convert';
+import '../providers/auth_provider.dart';
+import '../providers/sync_provider.dart';
 
 class OmrScanScreen extends StatefulWidget {
   const OmrScanScreen({super.key});
@@ -35,7 +37,8 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
   }
 
   Future<void> _loadExams() async {
-    final exams = await DatabaseHelper().getAllExams();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final exams = await DatabaseHelper().getAllExams(auth.userId);
     setState(() {
       _exams = exams;
     });
@@ -112,7 +115,8 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     if (result == null) return;
     final file = result.files.single;
     _studentFileName = file.name;
-    final provider = Provider.of<StudentProvider>(context, listen: false);
+     final provider = Provider.of<StudentProvider>(context, listen: false);
+     final auth = Provider.of<AuthProvider>(context, listen: false);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -133,7 +137,10 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
     } finally {
       if (mounted) Navigator.of(context).pop();
-      if (mounted) setState(() {});
+      if (mounted) {
+        Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+        setState(() {});
+      }
     }
   }
 
@@ -203,7 +210,8 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
       int scorePercentage = totalMaxMark > 0 ? ((studentMark / totalMaxMark) * 100).round() : 0;
 
       // Lookup student name
-      final student = await db.getStudentByStudentId(studentIdStr);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final student = await db.getStudentByStudentId(studentIdStr, auth.userId);
       final studentName = student?.name ?? 'Unknown Student';
 
       // Save result to database
@@ -214,6 +222,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
         score: scorePercentage,
         answers: jsonEncode(answerData),
         date: DateTime.now().toIso8601String(),
+        userId: auth.userId,
       );
       await db.insertResult(resultToSave);
 
@@ -225,6 +234,10 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Result saved to database!')));
+      // Trigger auto-sync
+      if (mounted) {
+        Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+      }
 
     } catch (e) {
       setState(() {

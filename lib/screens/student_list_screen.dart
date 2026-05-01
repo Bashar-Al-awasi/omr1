@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../providers/student_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/sync_provider.dart';
 import '../models/student.dart';
 import 'student_group_screen.dart';
 
@@ -125,6 +127,10 @@ class StudentListScreen extends StatelessWidget {
     );
     try {
       await provider.importFromFileWithMeta(file, subject, title);
+      // Trigger auto-sync
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+      
       messenger.showSnackBar(SnackBar(
         content: Text(loc.importComplete),
         behavior: SnackBarBehavior.floating,

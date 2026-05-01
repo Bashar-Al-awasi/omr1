@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/sync_provider.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -10,45 +13,70 @@ class CreateAccountScreen extends StatefulWidget {
 
 class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
-  String _password = '';
-  String _name = '';
-  bool _isLoading = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _confirmEmailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  
+  bool _obscurePassword = true;
 
-  void _submit() {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _confirmEmailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      // TODO: Implement real account creation logic (e.g., Firebase Auth)
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        final loc = AppLocalizations.of(context)!;
-        // reference fields so analyzer treats them as used
-        debugPrint('Creating account for email=$_email name=$_name pwdlen=${_password.length}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${loc.createAccount} (${_email.isEmpty ? _name : _email})')),
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final syncProvider = Provider.of<SyncProvider>(context, listen: false);
+      try {
+        await authProvider.signUpWithEmail(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+          _nameController.text.trim(),
         );
-        Navigator.of(context).pop();
-      });
+        syncProvider.autoSync(authProvider.userId);
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
+        iconTheme: IconThemeData(color: Theme.of(context).primaryColor),
         title: Text(loc.createAccount, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
             elevation: 8,
             child: Padding(
               padding: const EdgeInsets.all(28),
@@ -56,51 +84,92 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: isArabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.person_add, size: 48, color: Theme.of(context).primaryColor),
-                    const SizedBox(height: 18),
-                    Text(loc.createAccount, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 28),
+                    Center(child: Icon(Icons.person_add_rounded, size: 56, color: Theme.of(context).primaryColor)),
+                    const SizedBox(height: 24),
+                    
                     TextFormField(
+                      controller: _emailController,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
                         labelText: loc.emailLabel,
                         prefixIcon: const Icon(Icons.email_outlined),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEEEE))),
                       ),
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) => value != null && value.contains('@') ? null : 'Enter a valid email',
-                      onChanged: (v) => _email = v,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return loc.emailLabel;
+                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(value)) return isArabic ? "ادخل ايميل صحيح" : "Enter a valid email";
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    TextFormField(
+                      controller: _confirmEmailController,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      decoration: InputDecoration(
+                        labelText: isArabic ? "تأكيد الايميل" : "Confirm Email",
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEEEE))),
                       ),
-                     const SizedBox(height: 18),
-                     TextFormField(
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value != _emailController.text) return isArabic ? "الايميلات غير متطابقة" : "Emails do not match";
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    TextFormField(
+                      controller: _passwordController,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
                         labelText: loc.passwordLabel,
                         prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEEEE))),
                       ),
-                      obscureText: true,
-                      validator: (value) => value != null && value.length >= 6 ? null : 'Password too short',
-                      onChanged: (v) => _password = v,
-                     ),
-                     const SizedBox(height: 18),
-                     TextFormField(
+                      obscureText: _obscurePassword,
+                      validator: (value) => value != null && value.length >= 6 ? null : (isArabic ? "كلمة المرور قصيرة" : 'Password too short'),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    TextFormField(
+                      controller: _nameController,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
-                        labelText: loc.userName, // User Name
+                        labelText: loc.userName,
                         prefixIcon: const Icon(Icons.person_outline),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEEEE))),
                       ),
                       validator: (value) => value != null && value.trim().isNotEmpty ? null : loc.enterValidUserName,
-                      onChanged: (v) => _name = v,
-                     ),
-                     const SizedBox(height: 32),
-                     SizedBox(
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF007BFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                        onPressed: authProvider.isLoading ? null : _submit,
+                        child: authProvider.isLoading
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : Text(loc.createAccount, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
                     ),

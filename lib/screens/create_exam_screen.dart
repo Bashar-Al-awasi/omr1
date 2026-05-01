@@ -9,6 +9,9 @@ import 'package:open_file/open_file.dart';
 import 'package:omr1/db/database_helper.dart';
 import 'package:omr1/models/exam.dart';
 import 'package:omr1/models/question.dart';
+import 'package:provider/provider.dart';
+import 'package:omr1/providers/auth_provider.dart';
+import 'package:omr1/providers/sync_provider.dart';
 
 class CreateExamScreen extends StatefulWidget {
   const CreateExamScreen({super.key});
@@ -362,6 +365,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               }
               // Save exam and questions to database
               final db = DatabaseHelper();
+              final auth = Provider.of<AuthProvider>(context, listen: false);
               final exam = Exam(
                 title: _title ?? '',
                 subject: _subject ?? '',
@@ -369,6 +373,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 numQuestions: _numQuestions,
                 numChoices: _numChoices,
                 answerKey: '', // Not used, since questions are stored separately
+                userId: auth.userId,
               );
               final examId = await db.insertExam(exam);
               for (int i = 0; i < _numQuestions; i++) {
@@ -383,7 +388,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 await db.insertQuestion(question);
               }
               // Print all exams to debug console
-              final allExams = await db.getAllExams();
+              final allExams = await db.getAllExams(auth.userId);
               print('All exams in DB:');
               for (final e in allExams) {
                 print('Exam: id=${e.id}, title=${e.title}, subject=${e.subject}, date=${e.date}, numQuestions=${e.numQuestions}, numChoices=${e.numChoices}');
@@ -434,10 +439,20 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                   );
                 }
               }
+              // Capture providers before async work
+              final syncProv = Provider.of<SyncProvider>(context, listen: false);
+              final userId = auth.userId;
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(loc.examSaved)),
               );
-              Navigator.of(context).pop();
+              
+              // Trigger auto-sync silently in background
+              syncProv.autoSync(userId);
+              
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007BFF),

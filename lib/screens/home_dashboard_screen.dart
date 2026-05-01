@@ -3,7 +3,10 @@ import 'package:omr1/screens/create_exam_screen.dart';
 import 'package:omr1/screens/omr_scan_screen.dart';
 import 'package:omr1/screens/results_overview_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 import '../db/database_helper.dart';
+import '../providers/auth_provider.dart';
+import '../providers/sync_provider.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({super.key});
@@ -13,26 +16,36 @@ class HomeDashboardScreen extends StatefulWidget {
 }
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
-  late Future<Map<String, dynamic>> _statsFuture;
-  late Future<List<Map<String, dynamic>>> _recentScansFuture;
+  Future<Map<String, dynamic>>? _statsFuture;
+  Future<List<Map<String, dynamic>>>? _recentScansFuture;
 
   @override
   void initState() {
     super.initState();
     _refreshData();
+    // Auto-sync on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final sync = Provider.of<SyncProvider>(context, listen: false);
+      sync.autoSync(auth.userId);
+    });
   }
 
   void _refreshData() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     setState(() {
-      _statsFuture = DatabaseHelper().getDashboardStats();
-      _recentScansFuture = DatabaseHelper().getRecentScans(5);
+      _statsFuture = DatabaseHelper().getDashboardStats(auth.userId);
+      _recentScansFuture = DatabaseHelper().getRecentScans(5, auth.userId);
     });
+    // Trigger auto-sync after refresh
+    Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final userName = loc.teacher;
+    final auth = Provider.of<AuthProvider>(context);
+    final userName = auth.user?.displayName ?? loc.teacher;
     final today = DateTime.now();
     final dateString = "${today.day}/${today.month}/${today.year}";
 
@@ -49,18 +62,41 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black),
-            onPressed: () {},
-            tooltip: loc.notifications,
+          Consumer<SyncProvider>(
+            builder: (context, syncProv, _) {
+              if (syncProv.isSyncing) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                ));
+              }
+              return PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'logout') {
+                    auth.signOut();
+                  }
+                },
+                icon: CircleAvatar(
+                  backgroundColor: const Color(0xFFEEEEEE),
+                  backgroundImage: auth.user?.photoURL != null ? NetworkImage(auth.user!.photoURL!) : null,
+                  child: auth.user?.photoURL == null ? const Icon(Icons.person, color: Colors.black) : null,
+                ),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.black54),
+                        SizedBox(width: 12),
+                        Text('Logout'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Color(0xFFEEEEEE),
-              child: Icon(Icons.person, color: Colors.black),
-            ),
-          ),
+          const SizedBox(width: 8),
         ],
         iconTheme: const IconThemeData(color: Colors.black),
       ),

@@ -6,6 +6,7 @@ class Result {
   final int score;
   final String answers; // Store as JSON string
   final String date;
+  final String? userId;
 
   Result({
     this.id,
@@ -15,6 +16,7 @@ class Result {
     required this.score,
     required this.answers,
     required this.date,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class Result {
       'score': score,
       'answers': answers,
       'date': date,
+      'user_id': userId,
     };
   }
 
@@ -38,6 +41,7 @@ class Result {
       score: map['score'] as int,
       answers: map['answers'] as String,
       date: map['date'] as String,
+      userId: map['user_id'] as String?,
     );
   }
 }

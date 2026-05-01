@@ -4,6 +4,8 @@ import 'package:omr1/models/exam.dart';
 import 'dart:convert';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:omr1/screens/exam_results_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class ResultsOverviewScreen extends StatefulWidget {
   const ResultsOverviewScreen({super.key});
@@ -27,7 +29,8 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
 
   Future<void> _loadData() async {
     final db = DatabaseHelper();
-    final exams = await db.getAllExams();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final exams = await db.getAllExams(auth.userId);
     _totalExams = exams.length;
     _totalSheets = 0;
     double totalScoreSum = 0;
@@ -36,7 +39,7 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
     List<Map<String, dynamic>> summaries = [];
 
     for (var exam in exams) {
-      final results = await db.getResultsByExamId(exam.id!);
+      final results = await db.getResultsByExamId(exam.id!, auth.userId);
       _totalSheets += results.length;
       
       for (var r in results) {
@@ -51,7 +54,7 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
         
         // Auto-repair: If the stored name is "Unknown", try finding it now
         if (displayName == 'Unknown Student') {
-          final student = await db.getStudentByStudentId(r.studentId);
+          final student = await db.getStudentByStudentId(r.studentId, auth.userId);
           if (student != null) {
             displayName = student.name;
           }
