@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'live_scan_screen.dart';
 // removed unused imports: excel, typed_data
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -261,6 +262,29 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
         title: Text(loc.scanOmrSheet, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        actions: [
+          if (_selectedExam != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => LiveScanScreen(exam: _selectedExam!),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.videocam, size: 20),
+                label: const Text('Live Scan', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

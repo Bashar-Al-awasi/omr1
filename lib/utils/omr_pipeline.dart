@@ -310,23 +310,47 @@ class OMRScanner {
                 s.x <= b.last + 20);
             if (!rowExistsInBlock) continue;
 
-            int det = -1;
-            int mVal = 0;
-            int filledCount = 0;
+            // Collect pixel counts for all choices in this row
+            List<int> vals = [];
             for (int c = 0; c < b.length; c++) {
               final box =
                   warpedThresh.region(Rect(b[c] - bS, ry - bS, bS * 2, bS * 2));
-              int val = countNonZero(box);
-              if (val > minFilledPixels) {
-                filledCount++;
-                if (val > mVal) {
-                  mVal = val;
-                  det = c;
-                }
+              vals.add(countNonZero(box));
+            }
+
+            // Find the darkest bubble (highest pixel count)
+            int maxVal = 0;
+            int maxIdx = -1;
+            for (int c = 0; c < vals.length; c++) {
+              if (vals[c] > maxVal) {
+                maxVal = vals[c];
+                maxIdx = c;
               }
             }
-            // If more than one choice is shaded, return the "Multi" code (-2)
-            results.add(filledCount > 1 ? -2 : det);
+
+            if (maxVal < minFilledPixels) {
+              // Nothing filled at all
+              results.add(-1);
+            } else {
+              // Check if a second bubble is genuinely close to the darkest
+              // (≥75% of max AND above threshold) → true Multi selection
+              int closeCount = 0;
+              for (int c = 0; c < vals.length; c++) {
+                if (vals[c] > maxVal * 0.75 && vals[c] > minFilledPixels) {
+                  closeCount++;
+                }
+              }
+              if (closeCount >= b.length) {
+                // ALL choices look the same → just printed outlines, nothing selected
+                results.add(-1);
+              } else if (closeCount > 1) {
+                // 2+ bubbles are dark but not all → genuine Multi
+                results.add(-2);
+              } else {
+                // Only the darkest one stands out → single answer
+                results.add(maxIdx);
+              }
+            }
           }
         }
       }
@@ -341,4 +365,11 @@ class OMRScanner {
       'answers': answers,
     };
   }
+}
+
+/// Top-level function for use with compute().
+/// Runs the exact same OMR pipeline on a background isolate to avoid UI freezing.
+Map<String, dynamic> processImageInIsolate(String imagePath) {
+  final scanner = OMRScanner();
+  return scanner.processImage(imagePath);
 }
