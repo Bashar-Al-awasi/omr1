@@ -300,7 +300,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                   padding: const EdgeInsets.all(18),
                   child: DropdownButtonFormField<Exam>(
                     decoration: InputDecoration(
-                      labelText: loc.createExam, // Or better, a new translation for "Select Exam"
+                      labelText: loc.createExam,
                       prefixIcon: const Icon(Icons.assignment, color: Color(0xFF007BFF)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                     ),

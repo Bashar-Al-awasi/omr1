@@ -10,6 +10,7 @@ import 'providers/student_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sync_provider.dart';
 import 'screens/student_list_screen.dart';
+import 'screens/main_navigation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,9 +81,9 @@ class OmrApp extends StatelessWidget {
           ),
         ),
       ),
-      home: authProvider.user == null ? const WelcomeScreen() : const HomeDashboardScreen(),
+      home: authProvider.user == null ? const WelcomeScreen() : const MainNavigationScreen(),
       routes: {
-        '/home': (_) => const HomeDashboardScreen(),
+        '/main': (_) => const MainNavigationScreen(),
         '/students': (_) => const StudentListScreen(),
       },
     );

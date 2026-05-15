@@ -4,6 +4,7 @@ import 'package:omr1/screens/omr_scan_screen.dart';
 import 'package:omr1/screens/results_overview_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:omr1/locale_provider.dart';
 import '../db/database_helper.dart';
 import '../providers/auth_provider.dart';
 import '../providers/sync_provider.dart';
@@ -65,35 +66,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           Consumer<SyncProvider>(
             builder: (context, syncProv, _) {
               if (syncProv.isSyncing) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                ));
-              }
-              return PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'logout') {
-                    auth.signOut();
-                  }
-                },
-                icon: CircleAvatar(
-                  backgroundColor: const Color(0xFFEEEEEE),
-                  backgroundImage: auth.user?.photoURL != null ? NetworkImage(auth.user!.photoURL!) : null,
-                  child: auth.user?.photoURL == null ? const Icon(Icons.person, color: Colors.black) : null,
-                ),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Colors.black54),
-                        SizedBox(width: 12),
-                        Text('Logout'),
-                      ],
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                ],
-              );
+                );
+              }
+              return _buildProfileMenu(context, auth);
             },
           ),
           const SizedBox(width: 8),
@@ -268,6 +252,98 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProfileMenu(BuildContext context, AuthProvider auth) {
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final currentLocale = localeProvider.locale ?? const Locale('en');
+
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      icon: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.blue.withOpacity(0.3), width: 2),
+        ),
+        child: CircleAvatar(
+          radius: 18,
+          backgroundColor: Colors.blue.withOpacity(0.1),
+          backgroundImage: auth.user?.photoURL != null
+              ? NetworkImage(auth.user!.photoURL!)
+              : null,
+          child: auth.user?.photoURL == null
+              ? const Icon(Icons.person, size: 20, color: Colors.blue)
+              : null,
+        ),
+      ),
+      onSelected: (value) {
+        if (value == 'logout') {
+          auth.signOut();
+        } else if (value == 'en') {
+          localeProvider.setLocale(const Locale('en'));
+        } else if (value == 'ar') {
+          localeProvider.setLocale(const Locale('ar'));
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          enabled: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                auth.user?.displayName ?? 'Teacher',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.black, fontSize: 16),
+              ),
+              Text(
+                auth.user?.email ?? '',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const Divider(),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'en',
+          child: Row(
+            children: [
+              const Text('🇺🇸', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 12),
+              const Text('English'),
+              const Spacer(),
+              if (currentLocale.languageCode == 'en')
+                const Icon(Icons.check, color: Colors.blue, size: 18),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'ar',
+          child: Row(
+            children: [
+              const Text('🇸🇦', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 12),
+              const Text('العربية'),
+              const Spacer(),
+              if (currentLocale.languageCode == 'ar')
+                const Icon(Icons.check, color: Colors.blue, size: 18),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 20),
+              const SizedBox(width: 12),
+              Text('Logout', style: TextStyle(color: Colors.red.shade400)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

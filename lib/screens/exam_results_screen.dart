@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
-
+import 'package:omr1/db/database_helper.dart';
 class ExamResultsScreen extends StatefulWidget {
+  final int examId;
   final String examTitle;
   final String date;
   final List<Map<String, dynamic>> students;
-  const ExamResultsScreen({super.key, required this.examTitle, required this.date, required this.students});
+  const ExamResultsScreen({super.key, required this.examId, required this.examTitle, required this.date, required this.students});
 
   @override
   State<ExamResultsScreen> createState() => _ExamResultsScreenState();
@@ -20,10 +20,12 @@ class ExamResultsScreen extends StatefulWidget {
 class _ExamResultsScreenState extends State<ExamResultsScreen> {
   late TextEditingController _searchController;
   String _searchQuery = '';
+  late List<Map<String, dynamic>> _students;
 
   @override
   void initState() {
     super.initState();
+    _students = List.from(widget.students);
     _searchController = TextEditingController();
     _searchController.addListener(() {
       setState(() {
@@ -43,8 +45,8 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
     final loc = AppLocalizations.of(context)!;
     // Filter students by search query (case-insensitive)
     final filteredStudents = _searchQuery.isEmpty
-        ? widget.students
-        : widget.students.where((student) {
+        ? _students
+        : _students.where((student) {
             final name = (student['name'] ?? '').toString().toLowerCase();
             final id = (student['id'] ?? '').toString().toLowerCase();
             final query = _searchQuery.toLowerCase();
@@ -58,6 +60,39 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
         iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
         title: Text('${loc.results}: ${widget.examTitle}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep, color: Colors.red),
+            tooltip: 'Clear all results',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Clear All Results'),
+                  content: Text('Are you sure you want to delete ALL results for ${widget.examTitle}?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Clear All'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await DatabaseHelper().deleteResultsByExamId(widget.examId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('All results deleted'), backgroundColor: Colors.red),
+                  );
+                  Navigator.of(context).pop(); // Go back to overview
+                }
+              }
+            },
+          ),
           IconButton(
             icon: Icon(Icons.download, color: Color(0xFF007BFF)),
             tooltip: loc.exportAsExcel, // Localized
@@ -95,7 +130,48 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
                 leading: CircleAvatar(child: Text(student['name'][0])),
                 title: Text(student['name'], style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text('${loc.studentId}: ${student['id']}  |  ${loc.score}: ${student['score']}%'),
-                trailing: Icon(Icons.chevron_right, color: Color(0xFF007BFF)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete Result'),
+                            content: Text('Are you sure you want to delete this result for ${student['name']}?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          if (student['db_id'] != null) {
+                            await DatabaseHelper().deleteResult(student['db_id']);
+                            setState(() {
+                              _students.removeWhere((s) => s['db_id'] == student['db_id']);
+                            });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Result deleted'), backgroundColor: Colors.red),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                    const Icon(Icons.chevron_right, color: Color(0xFF007BFF)),
+                  ],
+                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -124,7 +200,7 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
     final Sheet sheet = excel['Results'];
     // Header
     sheet.appendRow([loc.studentId, loc.studentName, loc.score]); // Localized
-    for (final student in widget.students) {
+    for (final student in _students) {
       final row = [
         student['id'] ?? '',
         student['name'],

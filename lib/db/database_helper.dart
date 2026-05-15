@@ -179,6 +179,44 @@ class DatabaseHelper {
     await database.delete('exams', where: 'user_id = ?', whereArgs: [userId]);
   }
 
+  Future<int> updateExam(Exam exam) async {
+    final database = await db;
+    return await database.update(
+      'exams',
+      exam.toMap(),
+      where: 'id = ?',
+      whereArgs: [exam.id],
+    );
+  }
+
+  Future<int> updateQuestion(Question question) async {
+    final database = await db;
+    return await database.update(
+      'questions',
+      question.toMap(),
+      where: 'id = ?',
+      whereArgs: [question.id],
+    );
+  }
+
+  /// Deletes an exam and ALL its questions + results (cascade)
+  Future<void> deleteExam(int examId, String? userId) async {
+    final database = await db;
+    await database.delete('results', where: 'exam_id = ?', whereArgs: [examId]);
+    await database.delete('questions', where: 'exam_id = ?', whereArgs: [examId]);
+    await database.delete('exams', where: 'id = ? AND (user_id = ? OR user_id IS NULL)', whereArgs: [examId, userId]);
+  }
+
+  Future<void> deleteResultsByExamId(int examId) async {
+    final database = await db;
+    await database.delete('results', where: 'exam_id = ?', whereArgs: [examId]);
+  }
+
+  Future<void> deleteResult(int resultId) async {
+    final database = await db;
+    await database.delete('results', where: 'id = ?', whereArgs: [resultId]);
+  }
+
   // Result methods
   Future<int> insertResult(Result result) async {
     final database = await db;

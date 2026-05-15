@@ -67,8 +67,16 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    try {
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
+      await _auth.signOut();
+    } catch (e) {
+      debugPrint("Error during sign out: $e");
+      // Even if Google sign out fails, we should still try to sign out of Firebase
+      await _auth.signOut();
+    }
   }
 
   Future<List<String>> fetchSignInMethods(String email) async {

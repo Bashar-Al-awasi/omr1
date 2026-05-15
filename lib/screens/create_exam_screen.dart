@@ -12,6 +12,7 @@ import 'package:omr1/models/question.dart';
 import 'package:provider/provider.dart';
 import 'package:omr1/providers/auth_provider.dart';
 import 'package:omr1/providers/sync_provider.dart';
+import 'edit_exam_screen.dart';
 
 class CreateExamScreen extends StatefulWidget {
   const CreateExamScreen({super.key});
@@ -34,6 +35,21 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   List<TextEditingController> _marksControllers = List.generate(10, (_) => TextEditingController(text: '1'));
 
   List<String> get _choiceLabels => List.generate(_numChoices, (i) => String.fromCharCode(65 + i));
+
+  // Existing exams list
+  List<Exam> _existingExams = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadExistingExams();
+  }
+
+  Future<void> _loadExistingExams() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final exams = await DatabaseHelper().getAllExams(auth.userId);
+    if (mounted) setState(() => _existingExams = exams);
+  }
 
   @override
   void dispose() {
@@ -64,13 +80,20 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 700),
                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: _step == 0 ? _buildExamDetails(loc) : _buildAnswerKey(loc),
-                  ),
+                child: Column(
+                  children: [
+                    Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: _step == 0 ? _buildExamDetails(loc) : _buildAnswerKey(loc),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // ── Existing Exams List ──
+                    if (_existingExams.isNotEmpty) _buildExistingExamsList(loc),
+                  ],
                 ),
               ),
             ),
@@ -851,6 +874,163 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           ),
         );
       },
+    );
+  }
+
+  // ── Existing Exams List ──
+  Widget _buildExistingExamsList(AppLocalizations loc) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.folder_open, color: Color(0xFF007BFF), size: 22),
+              const SizedBox(width: 8),
+              Text('Your Exams (${_existingExams.length})',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        ..._existingExams.map((exam) => Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF007BFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.assignment,
+                                color: Color(0xFF007BFF), size: 22),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(exam.title,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15)),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${exam.subject}  •  ${exam.numQuestions} Q  •  ${exam.date.split('T').first}',
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final changed =
+                                  await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      EditExamScreen(exam: exam),
+                                ),
+                              );
+                              if (changed == true) _loadExistingExams();
+                            },
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text('Edit'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.blue,
+                              side: const BorderSide(color: Colors.blue),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Delete Exam'),
+                                  content: Text(
+                                    'Delete "${exam.title}"?\n\n'
+                                    'All questions and student results will be permanently removed.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                final auth = Provider.of<AuthProvider>(
+                                    context,
+                                    listen: false);
+                                await DatabaseHelper()
+                                    .deleteExam(exam.id!, auth.userId);
+                                _loadExistingExams();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Exam deleted'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.delete, size: 16),
+                            label: const Text('Delete'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )),
+      ],
     );
   }
 }

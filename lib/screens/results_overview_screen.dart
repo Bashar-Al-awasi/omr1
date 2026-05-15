@@ -61,6 +61,7 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
         }
 
         studentResults.add({
+          'db_id': r.id, // Needed for deletion
           'id': r.studentId,
           'name': displayName,
           'score': r.score,
@@ -149,16 +150,18 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
                 title: exam.title,
                 date: exam.date.split('T').first, // Simple date display
                 score: '${summary['count']} ${loc.sheets}',
-                onTap: () {
-                  Navigator.of(context).push(
+                onTap: () async {
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ExamResultsScreen(
+                        examId: exam.id!,
                         examTitle: exam.title,
                         date: exam.date.split('T').first,
                         students: List<Map<String, dynamic>>.from(summary['studentResults']),
                       ),
                     ),
                   );
+                  _loadData(); // Refresh overview after returning (in case a result was deleted)
                 },
               );
             }).toList(),
