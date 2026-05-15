@@ -85,8 +85,7 @@ class _EditExamScreenState extends State<EditExamScreen> {
     }
 
     // Sync
-    Provider.of<SyncProvider>(context, listen: false)
-        .autoSync(auth.userId);
+    Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
 
     setState(() => _isSaving = false);
 
@@ -151,8 +150,7 @@ class _EditExamScreenState extends State<EditExamScreen> {
                       children: [
                         const Text('Exam Details',
                             style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _titleController,
@@ -176,8 +174,8 @@ class _EditExamScreenState extends State<EditExamScreen> {
                         const SizedBox(height: 8),
                         Text(
                           '${widget.exam.numQuestions} questions  •  ${widget.exam.numChoices} choices  •  ${widget.exam.date}',
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12),
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ],
                     ),
@@ -239,11 +237,9 @@ class _EditExamScreenState extends State<EditExamScreen> {
                               decoration: InputDecoration(
                                 labelText: 'Answer',
                                 border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10)),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
+                                    borderRadius: BorderRadius.circular(10)),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 isDense: true,
                               ),
                               items: List.generate(
@@ -259,8 +255,7 @@ class _EditExamScreenState extends State<EditExamScreen> {
                               ),
                               onChanged: (val) {
                                 if (val != null) {
-                                  setState(
-                                      () => _correctChoices[i] = val);
+                                  setState(() => _correctChoices[i] = val);
                                 }
                               },
                             ),
@@ -276,11 +271,9 @@ class _EditExamScreenState extends State<EditExamScreen> {
                               decoration: InputDecoration(
                                 labelText: 'Mark',
                                 border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10)),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
+                                    borderRadius: BorderRadius.circular(10)),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 isDense: true,
                               ),
                               onChanged: (val) {

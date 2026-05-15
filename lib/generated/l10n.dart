@@ -60,10 +60,10 @@ class S {
     );
   }
 
-  /// `Home`
+  /// `Welcome`
   String get homeScreenTitle {
     return Intl.message(
-      'Home',
+      'Welcome',
       name: 'homeScreenTitle',
       desc: '',
       args: [],
@@ -835,6 +835,646 @@ class S {
     return Intl.message(
       'Cancel',
       name: 'cancel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No recent scans yet`
+  String get noScansYet {
+    return Intl.message(
+      'No recent scans yet',
+      name: 'noScansYet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Core Actions`
+  String get coreActions {
+    return Intl.message(
+      'Core Actions',
+      name: 'coreActions',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `View All`
+  String get viewAll {
+    return Intl.message(
+      'View All',
+      name: 'viewAll',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New List Info`
+  String get newListInfo {
+    return Intl.message(
+      'New List Info',
+      name: 'newListInfo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Title`
+  String get title {
+    return Intl.message(
+      'Title',
+      name: 'title',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import`
+  String get importLabel {
+    return Intl.message(
+      'Import',
+      name: 'importLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import complete`
+  String get importComplete {
+    return Intl.message(
+      'Import complete',
+      name: 'importComplete',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import failed: {error}`
+  String importFailed(Object error) {
+    return Intl.message(
+      'Import failed: $error',
+      name: 'importFailed',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `No students imported`
+  String get noStudentsImported {
+    return Intl.message(
+      'No students imported',
+      name: 'noStudentsImported',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} students`
+  String studentsCount(Object count) {
+    return Intl.message(
+      '$count students',
+      name: 'studentsCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Provide details for the student list`
+  String get importDetailsSubtitle {
+    return Intl.message(
+      'Provide details for the student list',
+      name: 'importDetailsSubtitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Home`
+  String get navHome {
+    return Intl.message(
+      'Home',
+      name: 'navHome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exams`
+  String get navExams {
+    return Intl.message(
+      'Exams',
+      name: 'navExams',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Results`
+  String get navResults {
+    return Intl.message(
+      'Results',
+      name: 'navResults',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account`
+  String get navAccount {
+    return Intl.message(
+      'Account',
+      name: 'navAccount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Logout`
+  String get logout {
+    return Intl.message(
+      'Logout',
+      name: 'logout',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unknown Exam`
+  String get unknownExam {
+    return Intl.message(
+      'Unknown Exam',
+      name: 'unknownExam',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} sheets`
+  String sheetsCountLabel(Object count) {
+    return Intl.message(
+      '$count sheets',
+      name: 'sheetsCountLabel',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Account Settings`
+  String get accountSettings {
+    return Intl.message(
+      'Account Settings',
+      name: 'accountSettings',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select Language`
+  String get selectLanguage {
+    return Intl.message(
+      'Select Language',
+      name: 'selectLanguage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Help Center`
+  String get helpCenter {
+    return Intl.message(
+      'Help Center',
+      name: 'helpCenter',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `About Smart OMR`
+  String get aboutApp {
+    return Intl.message(
+      'About Smart OMR',
+      name: 'aboutApp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Support`
+  String get support {
+    return Intl.message(
+      'Support',
+      name: 'support',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unknown Student`
+  String get unknownStudent {
+    return Intl.message(
+      'Unknown Student',
+      name: 'unknownStudent',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Math`
+  String get math {
+    return Intl.message(
+      'Math',
+      name: 'math',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Science`
+  String get science {
+    return Intl.message(
+      'Science',
+      name: 'science',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `History`
+  String get history {
+    return Intl.message(
+      'History',
+      name: 'history',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `English`
+  String get english {
+    return Intl.message(
+      'English',
+      name: 'english',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `PDF save error: {error}`
+  String pdfSaveError(Object error) {
+    return Intl.message(
+      'PDF save error: $error',
+      name: 'pdfSaveError',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `Clear All Results`
+  String get clearAllResults {
+    return Intl.message(
+      'Clear All Results',
+      name: 'clearAllResults',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Are you sure you want to delete ALL results for {examTitle}?`
+  String clearResultsConfirmation(Object examTitle) {
+    return Intl.message(
+      'Are you sure you want to delete ALL results for $examTitle?',
+      name: 'clearResultsConfirmation',
+      desc: '',
+      args: [examTitle],
+    );
+  }
+
+  /// `Delete Result`
+  String get deleteResult {
+    return Intl.message(
+      'Delete Result',
+      name: 'deleteResult',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Are you sure you want to delete this result for {studentName}?`
+  String deleteResultConfirmation(Object studentName) {
+    return Intl.message(
+      'Are you sure you want to delete this result for $studentName?',
+      name: 'deleteResultConfirmation',
+      desc: '',
+      args: [studentName],
+    );
+  }
+
+  /// `Result deleted`
+  String get resultDeleted {
+    return Intl.message(
+      'Result deleted',
+      name: 'resultDeleted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All results deleted`
+  String get allResultsDeleted {
+    return Intl.message(
+      'All results deleted',
+      name: 'allResultsDeleted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please select an exam first`
+  String get selectExamFirst {
+    return Intl.message(
+      'Please select an exam first',
+      name: 'selectExamFirst',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please upload or capture an image first.`
+  String get uploadImageFirst {
+    return Intl.message(
+      'Please upload or capture an image first.',
+      name: 'uploadImageFirst',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Blank`
+  String get blank {
+    return Intl.message(
+      'Blank',
+      name: 'blank',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Multi`
+  String get multi {
+    return Intl.message(
+      'Multi',
+      name: 'multi',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Result saved to database!`
+  String get resultSaved {
+    return Intl.message(
+      'Result saved to database!',
+      name: 'resultSaved',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Error during scanning: {error}`
+  String scanError(Object error) {
+    return Intl.message(
+      'Error during scanning: $error',
+      name: 'scanError',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `Live Scan`
+  String get liveScan {
+    return Intl.message(
+      'Live Scan',
+      name: 'liveScan',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please select an exam`
+  String get selectExam {
+    return Intl.message(
+      'Please select an exam',
+      name: 'selectExam',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exam`
+  String get examLabel {
+    return Intl.message(
+      'Exam',
+      name: 'examLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Score`
+  String get scoreLabel {
+    return Intl.message(
+      'Score',
+      name: 'scoreLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Live OMR Scan`
+  String get liveScanTitle {
+    return Intl.message(
+      'Live OMR Scan',
+      name: 'liveScanTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Initializing...`
+  String get initializing {
+    return Intl.message(
+      'Initializing...',
+      name: 'initializing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Camera ready...`
+  String get cameraReady {
+    return Intl.message(
+      'Camera ready...',
+      name: 'cameraReady',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Place paper under camera`
+  String get placePaperInstruction {
+    return Intl.message(
+      'Place paper under camera',
+      name: 'placePaperInstruction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scanning...`
+  String get scanning {
+    return Intl.message(
+      'Scanning...',
+      name: 'scanning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Done! Remove paper for next`
+  String get doneRemovePaper {
+    return Intl.message(
+      'Done! Remove paper for next',
+      name: 'doneRemovePaper',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Hold still — confirming...`
+  String get holdStillConfirming {
+    return Intl.message(
+      'Hold still — confirming...',
+      name: 'holdStillConfirming',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Processing...`
+  String get processing {
+    return Intl.message(
+      'Processing...',
+      name: 'processing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `remove paper`
+  String get removePaper {
+    return Intl.message(
+      'remove paper',
+      name: 'removePaper',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tap screen to focus  •  Flash icon for light`
+  String get tapToFocus {
+    return Intl.message(
+      'Tap screen to focus  •  Flash icon for light',
+      name: 'tapToFocus',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Obtained Marks`
+  String get obtainedMarks {
+    return Intl.message(
+      'Obtained Marks',
+      name: 'obtainedMarks',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total Marks`
+  String get totalMarks {
+    return Intl.message(
+      'Total Marks',
+      name: 'totalMarks',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exam Analysis`
+  String get examAnalysis {
+    return Intl.message(
+      'Exam Analysis',
+      name: 'examAnalysis',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Analysis Report`
+  String get analysisReport {
+    return Intl.message(
+      'Analysis Report',
+      name: 'analysisReport',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Edit Exam`
+  String get editExam {
+    return Intl.message(
+      'Edit Exam',
+      name: 'editExam',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exam Details`
+  String get examDetails {
+    return Intl.message(
+      'Exam Details',
+      name: 'examDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Saving...`
+  String get saving {
+    return Intl.message(
+      'Saving...',
+      name: 'saving',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exam updated successfully`
+  String get updateSuccess {
+    return Intl.message(
+      'Exam updated successfully',
+      name: 'updateSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Delete`
+  String get delete {
+    return Intl.message(
+      'Delete',
+      name: 'delete',
       desc: '',
       args: [],
     );

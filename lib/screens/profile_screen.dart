@@ -19,7 +19,9 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(loc.smartOmr, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(loc.smartOmr,
+            style: const TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -33,7 +35,8 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.blue.withOpacity(0.3), width: 4),
+                      border: Border.all(
+                          color: Colors.blue.withOpacity(0.3), width: 4),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.blue.withOpacity(0.1),
@@ -45,8 +48,13 @@ class ProfileScreen extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 60,
                       backgroundColor: Colors.white,
-                      backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                      child: user?.photoURL == null ? const Icon(Icons.person, size: 60, color: Colors.blue) : null,
+                      backgroundImage: user?.photoURL != null
+                          ? NetworkImage(user!.photoURL!)
+                          : null,
+                      child: user?.photoURL == null
+                          ? const Icon(Icons.person,
+                              size: 60, color: Colors.blue)
+                          : null,
                     ),
                   ),
                   Positioned(
@@ -54,8 +62,10 @@ class ProfileScreen extends StatelessWidget {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                      decoration: const BoxDecoration(
+                          color: Colors.blue, shape: BoxShape.circle),
+                      child:
+                          const Icon(Icons.edit, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -73,31 +83,33 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 40),
 
             // Settings Sections
-            _buildSection(context, 'Account Settings', [
+            _buildSection(context, loc.accountSettings, [
               _buildSettingTile(
                 icon: Icons.language,
-                title: 'Language',
-                trailing: localeProvider.locale?.languageCode == 'ar' ? 'العربية' : 'English',
+                title: loc.languageLabel,
+                trailing: localeProvider.locale?.languageCode == 'ar'
+                    ? 'العربية'
+                    : 'English',
                 onTap: () {
                   _showLanguageDialog(context, localeProvider);
                 },
               ),
               _buildSettingTile(
                 icon: Icons.notifications_none,
-                title: 'Notifications',
+                title: loc.notifications,
                 onTap: () {},
               ),
             ]),
             const SizedBox(height: 24),
-            _buildSection(context, 'Support', [
+            _buildSection(context, loc.support, [
               _buildSettingTile(
                 icon: Icons.help_outline,
-                title: 'Help Center',
+                title: loc.helpCenter,
                 onTap: () {},
               ),
               _buildSettingTile(
                 icon: Icons.info_outline,
-                title: 'About Smart OMR',
+                title: loc.aboutApp,
                 onTap: () {},
               ),
             ]),
@@ -109,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => auth.signOut(),
                 icon: const Icon(Icons.logout),
-                label: const Text('Logout'),
+                label: Text(loc.logout),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade50,
                   foregroundColor: Colors.red,
@@ -132,7 +144,8 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+            style: const TextStyle(
+                fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
           ),
         ),
         Container(
@@ -166,7 +179,8 @@ class ProfileScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (trailing != null)
-            Text(trailing, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(trailing,
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
           const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
         ],
       ),
@@ -175,20 +189,25 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showLanguageDialog(BuildContext context, LocaleProvider provider) {
+    final loc = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Select Language', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(loc.selectLanguage,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             ListTile(
               leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
               title: const Text('English'),
-              trailing: provider.locale?.languageCode == 'en' ? const Icon(Icons.check, color: Colors.blue) : null,
+              trailing: provider.locale?.languageCode == 'en'
+                  ? const Icon(Icons.check, color: Colors.blue)
+                  : null,
               onTap: () {
                 provider.setLocale(const Locale('en'));
                 Navigator.pop(context);
@@ -197,7 +216,9 @@ class ProfileScreen extends StatelessWidget {
             ListTile(
               leading: const Text('🇸🇦', style: TextStyle(fontSize: 24)),
               title: const Text('العربية'),
-              trailing: provider.locale?.languageCode == 'ar' ? const Icon(Icons.check, color: Colors.blue) : null,
+              trailing: provider.locale?.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: Colors.blue)
+                  : null,
               onTap: () {
                 provider.setLocale(const Locale('ar'));
                 Navigator.pop(context);

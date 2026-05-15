@@ -4,6 +4,7 @@ import 'package:omr1/screens/create_exam_screen.dart';
 import 'package:omr1/screens/results_overview_screen.dart';
 import 'package:omr1/screens/profile_screen.dart';
 import 'package:omr1/screens/omr_scan_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -14,16 +15,24 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = [
-    const HomeDashboardScreen(),
-    const CreateExamScreen(),
-    const ResultsOverviewScreen(),
-    const ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeDashboardScreen(onTabChange: (index) {
+        setState(() => _currentIndex = index);
+      }),
+      const CreateExamScreen(),
+      const ResultsOverviewScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -49,11 +58,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.assignment_rounded, 'Exams'),
+              _buildNavItem(0, Icons.home_rounded, loc.navHome),
+              _buildNavItem(1, Icons.assignment_rounded, loc.navExams),
               const SizedBox(width: 40), // Space for FAB
-              _buildNavItem(2, Icons.bar_chart_rounded, 'Results'),
-              _buildNavItem(3, Icons.person_rounded, 'Account'),
+              _buildNavItem(2, Icons.bar_chart_rounded, loc.navResults),
+              _buildNavItem(3, Icons.person_rounded, loc.navAccount),
             ],
           ),
         ),

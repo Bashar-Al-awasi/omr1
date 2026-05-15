@@ -10,7 +10,8 @@ import '../providers/auth_provider.dart';
 import '../providers/sync_provider.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({super.key});
+  final Function(int)? onTabChange;
+  const HomeDashboardScreen({super.key, this.onTabChange});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -59,7 +60,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           children: [
             Icon(Icons.bubble_chart, color: Theme.of(context).primaryColor),
             const SizedBox(width: 8),
-            Text(loc.smartOmr, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            Text(loc.smartOmr,
+                style: const TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -109,13 +112,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("${loc.homeScreenTitle}, $userName!", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text("${loc.homeScreenTitle}, $userName!",
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
                           const SizedBox(height: 6),
-                          Text("${loc.date}: $dateString", style: const TextStyle(color: Colors.white70)),
+                          Text("${loc.date}: $dateString",
+                              style: const TextStyle(color: Colors.white70)),
                         ],
                       ),
                     ),
-                    const Icon(Icons.waving_hand, color: Colors.white, size: 36),
+                    const Icon(Icons.waving_hand,
+                        color: Colors.white, size: 36),
                   ],
                 ),
               ),
@@ -124,7 +133,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               FutureBuilder<Map<String, dynamic>>(
                 future: _statsFuture,
                 builder: (context, snapshot) {
-                  final stats = snapshot.data ?? {'totalExams': 0, 'totalSheets': 0, 'avgScore': 0.0};
+                  final stats = snapshot.data ??
+                      {'totalExams': 0, 'totalSheets': 0, 'avgScore': 0.0};
                   return SizedBox(
                     height: 110,
                     child: ListView(
@@ -144,7 +154,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         ),
                         _SummaryCardModern(
                           icon: Icons.bar_chart,
-                          value: '${(stats['avgScore'] as double).toStringAsFixed(1)}%',
+                          value:
+                              '${(stats['avgScore'] as double).toStringAsFixed(1)}%',
                           label: loc.avgScore,
                           color: const Color(0xFFFB8C00),
                         ),
@@ -155,7 +166,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               ),
               const SizedBox(height: 32),
               // Quick Actions
-              Text(loc.coreActions, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(loc.coreActions,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               GridView.count(
                 crossAxisCount: 2,
@@ -169,10 +182,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     icon: Icons.add_circle_outline,
                     label: loc.createExam,
                     onTap: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const CreateExamScreen()),
-                      );
-                      _refreshData();
+                      if (widget.onTabChange != null) {
+                        widget.onTabChange!(1);
+                      } else {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const CreateExamScreen()),
+                        );
+                        _refreshData();
+                      }
                     },
                   ),
                   _QuickActionModern(
@@ -180,7 +198,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     label: loc.scanOmrSheet,
                     onTap: () async {
                       await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const OmrScanScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const OmrScanScreen()),
                       );
                       _refreshData();
                     },
@@ -189,16 +208,26 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     icon: Icons.list_alt,
                     label: loc.resultsButton,
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ResultsOverviewScreen()),
-                      ).then((_) => _refreshData());
+                      if (widget.onTabChange != null) {
+                        widget.onTabChange!(2);
+                      } else {
+                        Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ResultsOverviewScreen()),
+                            )
+                            .then((_) => _refreshData());
+                      }
                     },
                   ),
                   _QuickActionModern(
                     icon: Icons.person_search,
                     label: loc.students,
                     onTap: () {
-                      Navigator.of(context).pushNamed('/students').then((_) => _refreshData());
+                      Navigator.of(context)
+                          .pushNamed('/students')
+                          .then((_) => _refreshData());
                     },
                   ),
                 ],
@@ -208,10 +237,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(loc.recentScans, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(loc.recentScans,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   TextButton(
                     onPressed: () {},
-                    child: Text(loc.viewAll, style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                    child: Text(loc.viewAll,
+                        style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -220,7 +254,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 future: _recentScansFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: Padding(
+                    return const Center(
+                        child: Padding(
                       padding: EdgeInsets.all(20.0),
                       child: CircularProgressIndicator(),
                     ));
@@ -232,7 +267,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       child: Center(
                         child: Text(
                           loc.noScansYet,
-                          style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                          style: const TextStyle(
+                              color: Colors.grey, fontStyle: FontStyle.italic),
                         ),
                       ),
                     );
@@ -240,9 +276,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   return Column(
                     children: scans.map((scan) {
                       return _RecentExamCard(
-                        title: scan['exam_title'] ?? 'Unknown Exam',
+                        title: scan['exam_title'] ?? loc.unknownExam,
                         date: scan['date']?.toString().split('T').first ?? '',
                         status: loc.graded,
+                        studentCount: scan['student_count'] ?? 0,
                       );
                     }).toList(),
                   );
@@ -256,6 +293,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Widget _buildProfileMenu(BuildContext context, AuthProvider auth) {
+    final loc = AppLocalizations.of(context)!;
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     final currentLocale = localeProvider.locale ?? const Locale('en');
 
@@ -296,7 +334,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Text(
                 auth.user?.displayName ?? 'Teacher',
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.black, fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    fontSize: 16),
               ),
               Text(
                 auth.user?.email ?? '',
@@ -339,7 +379,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             children: [
               Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 20),
               const SizedBox(width: 12),
-              Text('Logout', style: TextStyle(color: Colors.red.shade400)),
+              Text(loc.logout, style: TextStyle(color: Colors.red.shade400)),
             ],
           ),
         ),
@@ -353,7 +393,11 @@ class _SummaryCardModern extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-  const _SummaryCardModern({required this.icon, required this.value, required this.label, required this.color});
+  const _SummaryCardModern(
+      {required this.icon,
+      required this.value,
+      required this.label,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -384,9 +428,15 @@ class _SummaryCardModern extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 6),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -398,7 +448,8 @@ class _QuickActionModern extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _QuickActionModern({required this.icon, required this.label, required this.onTap});
+  const _QuickActionModern(
+      {required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -415,7 +466,9 @@ class _QuickActionModern extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 32),
               const SizedBox(height: 10),
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -428,11 +481,18 @@ class _RecentExamCard extends StatelessWidget {
   final String title;
   final String date;
   final String status;
-  const _RecentExamCard({required this.title, required this.date, required this.status});
+  final int studentCount;
+  const _RecentExamCard(
+      {required this.title,
+      required this.date,
+      required this.status,
+      required this.studentCount});
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor = status == 'Graded' ? const Color(0xFF43A047) : const Color(0xFFFB8C00);
+    final loc = AppLocalizations.of(context)!;
+    Color statusColor =
+        status == 'Graded' ? const Color(0xFF43A047) : const Color(0xFFFB8C00);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       margin: const EdgeInsets.only(bottom: 12),
@@ -442,12 +502,16 @@ class _RecentExamCard extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(date),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
+            color: Colors.blue.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+          child: Text(
+            loc.sheetsCountLabel(studentCount),
+            style: const TextStyle(
+                color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );

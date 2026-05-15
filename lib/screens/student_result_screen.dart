@@ -50,9 +50,23 @@ class StudentResultScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.emoji_events, color: Color(0xFF43A047), size: 32),
+                        const Icon(Icons.emoji_events, color: Color(0xFF43A047), size: 32),
                         const SizedBox(width: 10),
-                        Text('${loc.score}: $score%', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF43A047))), // Localized
+                        Builder(
+                          builder: (context) {
+                            int total = 0;
+                            int obtained = 0;
+                            for (var a in answers) {
+                              int m = a['mark'] ?? 0;
+                              total += m;
+                              if (a['isCorrect'] == true) obtained += m;
+                            }
+                            return Text(
+                              '${loc.score}: $obtained / $total',
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF43A047)),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ],

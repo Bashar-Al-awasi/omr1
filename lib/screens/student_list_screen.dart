@@ -15,7 +15,7 @@ class StudentListScreen extends StatelessWidget {
   Future<void> _pickAndImport(BuildContext context) async {
     final loc = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    
+
     final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
@@ -24,7 +24,8 @@ class StudentListScreen extends StatelessWidget {
         final titleController = TextEditingController();
         final subjectController = TextEditingController();
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -51,15 +52,20 @@ class StudentListScreen extends StatelessWidget {
                         color: theme.primaryColor.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.drive_folder_upload, color: theme.primaryColor, size: 28),
+                      child: Icon(Icons.drive_folder_upload,
+                          color: theme.primaryColor, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(loc.newListInfo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                          Text(loc.importDetailsSubtitle, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                          Text(loc.newListInfo,
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w900)),
+                          Text(loc.importDetailsSubtitle,
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 13)),
                         ],
                       ),
                     ),
@@ -110,16 +116,19 @@ class StudentListScreen extends StatelessWidget {
     final title = result['title']!;
     final subject = result['subject']!;
 
-    final fileResult = await FilePicker.platform.pickFiles(allowMultiple: false, type: FileType.custom, allowedExtensions: ['csv', 'txt', 'xls', 'xlsx']);
+    final fileResult = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['csv', 'txt', 'xls', 'xlsx']);
     if (fileResult == null) return;
     final path = fileResult.files.single.path;
     if (path == null) return;
     final file = File(path);
-    
+
     final provider = Provider.of<StudentProvider>(context, listen: false);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -130,14 +139,16 @@ class StudentListScreen extends StatelessWidget {
       // Trigger auto-sync
       final auth = Provider.of<AuthProvider>(context, listen: false);
       Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
-      
+
       messenger.showSnackBar(SnackBar(
         content: Text(loc.importComplete),
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.green[700],
       ));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(loc.importFailed(e.toString())), backgroundColor: Colors.red[700]));
+      messenger.showSnackBar(SnackBar(
+          content: Text(loc.importFailed(e.toString())),
+          backgroundColor: Colors.red[700]));
     } finally {
       navigator.pop();
     }
@@ -151,7 +162,9 @@ class StudentListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: Text(loc.students, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black)),
+        title: Text(loc.students,
+            style: const TextStyle(
+                fontWeight: FontWeight.w900, color: Colors.black)),
         centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -164,7 +177,7 @@ class StudentListScreen extends StatelessWidget {
       ),
       body: Consumer<StudentProvider>(builder: (context, prov, _) {
         final list = prov.students;
-        
+
         if (list.isEmpty) {
           return Center(
             child: Column(
@@ -176,12 +189,18 @@ class StudentListScreen extends StatelessWidget {
                     color: theme.primaryColor.withOpacity(0.05),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.group_add_outlined, size: 80, color: theme.primaryColor.withOpacity(0.4)),
+                  child: Icon(Icons.group_add_outlined,
+                      size: 80, color: theme.primaryColor.withOpacity(0.4)),
                 ),
                 const SizedBox(height: 24),
-                Text(loc.noStudentsImported, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)),
+                Text(loc.noStudentsImported,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54)),
                 const SizedBox(height: 8),
-                Text('Tap the "+" button to import your students', style: TextStyle(color: Colors.grey[400])),
+                Text('Tap the "+" button to import your students',
+                    style: TextStyle(color: Colors.grey[400])),
               ],
             ),
           );
@@ -206,7 +225,12 @@ class StudentListScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4))
+                ],
               ),
               child: TextField(
                 decoration: InputDecoration(
@@ -226,9 +250,19 @@ class StudentListScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 12, top: 4),
                   child: Row(
                     children: [
-                      Container(width: 4, height: 16, decoration: BoxDecoration(color: theme.primaryColor, borderRadius: BorderRadius.circular(2))),
+                      Container(
+                          width: 4,
+                          height: 16,
+                          decoration: BoxDecoration(
+                              color: theme.primaryColor,
+                              borderRadius: BorderRadius.circular(2))),
                       const SizedBox(width: 8),
-                      Text(subject.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+                      Text(subject.toUpperCase(),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              letterSpacing: 1.2)),
                     ],
                   ),
                 ),
@@ -240,7 +274,12 @@ class StudentListScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 6))],
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6))
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
@@ -254,14 +293,21 @@ class StudentListScreen extends StatelessWidget {
                               color: theme.primaryColor.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Icon(Icons.folder_shared, color: theme.primaryColor),
+                            child: Icon(Icons.folder_shared,
+                                color: theme.primaryColor),
                           ),
-                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          subtitle: Text(loc.studentsCount(students.length), style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                          title: Text(title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          subtitle: Text(loc.studentsCount(students.length),
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 13)),
                           trailing: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: Colors.grey[50], shape: BoxShape.circle),
-                            child: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                            decoration: BoxDecoration(
+                                color: Colors.grey[50], shape: BoxShape.circle),
+                            child: const Icon(Icons.chevron_right,
+                                size: 20, color: Colors.grey),
                           ),
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
@@ -290,4 +336,3 @@ class StudentListScreen extends StatelessWidget {
     );
   }
 }
-

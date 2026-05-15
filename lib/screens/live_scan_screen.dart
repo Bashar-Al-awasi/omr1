@@ -154,7 +154,11 @@ class _LiveScanScreenState extends State<LiveScanScreen>
     try {
       photo = await _cameraController!.takePicture();
     } catch (_) {
-      if (mounted) setState(() { _isProcessing = false; _statusText = 'Place paper under camera'; });
+      if (mounted)
+        setState(() {
+          _isProcessing = false;
+          _statusText = 'Place paper under camera';
+        });
       return;
     }
 
@@ -171,8 +175,14 @@ class _LiveScanScreenState extends State<LiveScanScreen>
 
       // Skip cooldown: same sheet still under camera
       if (studentIdStr == _lastScannedId) {
-        if (mounted) setState(() { _isProcessing = false; _statusText = '✅ Done! Remove paper for next'; });
-        try { await File(photo.path).delete(); } catch (_) {}
+        if (mounted)
+          setState(() {
+            _isProcessing = false;
+            _statusText = '✅ Done! Remove paper for next';
+          });
+        try {
+          await File(photo.path).delete();
+        } catch (_) {}
         return;
       }
 
@@ -185,8 +195,14 @@ class _LiveScanScreenState extends State<LiveScanScreen>
       }
 
       if (_confirmCount < _requiredConfirmations) {
-        if (mounted) setState(() { _isProcessing = false; _statusText = '🔍 Hold still — confirming...'; });
-        try { await File(photo.path).delete(); } catch (_) {}
+        if (mounted)
+          setState(() {
+            _isProcessing = false;
+            _statusText = '🔍 Hold still — confirming...';
+          });
+        try {
+          await File(photo.path).delete();
+        } catch (_) {}
         return;
       }
 
@@ -202,24 +218,31 @@ class _LiveScanScreenState extends State<LiveScanScreen>
         final qNum = i + 1;
         final correctQ = correctQuestions.firstWhere(
           (q) => q.questionNumber == qNum,
-          orElse: () => Question(examId: -1, questionNumber: -1, correctChoice: -1, mark: 0),
+          orElse: () => Question(
+              examId: -1, questionNumber: -1, correctChoice: -1, mark: 0),
         );
 
         String sel = 'Blank';
-        if (scannedAnswers[i] >= 0) sel = String.fromCharCode(65 + scannedAnswers[i]);
+        if (scannedAnswers[i] >= 0)
+          sel = String.fromCharCode(65 + scannedAnswers[i]);
         else if (scannedAnswers[i] == -2) sel = 'Multi';
 
         String cor = 'N/A';
-        if (correctQ.correctChoice >= 0) cor = String.fromCharCode(65 + correctQ.correctChoice);
+        if (correctQ.correctChoice >= 0)
+          cor = String.fromCharCode(65 + correctQ.correctChoice);
 
-        final isCorrect = (scannedAnswers[i] == correctQ.correctChoice) && (scannedAnswers[i] >= 0);
+        final isCorrect = (scannedAnswers[i] == correctQ.correctChoice) &&
+            (scannedAnswers[i] >= 0);
         if (correctQ.id != null && correctQ.id != -1) {
           totalMaxMark += correctQ.mark;
           if (isCorrect) studentMark += correctQ.mark;
         }
         answerData.add({
-          'question': qNum, 'selected': sel,
-          'correct': cor, 'isCorrect': isCorrect, 'mark': correctQ.mark,
+          'question': qNum,
+          'selected': sel,
+          'correct': cor,
+          'isCorrect': isCorrect,
+          'mark': correctQ.mark,
         });
       }
 
@@ -244,7 +267,9 @@ class _LiveScanScreenState extends State<LiveScanScreen>
         Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
       }
 
-      try { await _audioPlayer.play(AssetSource('sounds/beep.wav')); } catch (_) {}
+      try {
+        await _audioPlayer.play(AssetSource('sounds/beep.wav'));
+      } catch (_) {}
       _flashController.forward(from: 0.0);
 
       _lastScannedId = studentIdStr;
@@ -261,25 +286,32 @@ class _LiveScanScreenState extends State<LiveScanScreen>
             'totalMark': totalMaxMark,
             'studentMark': studentMark,
           });
-          _isProcessing = false;
-          _statusText = '✅ $studentName — $scorePercent%   (remove paper)';
+          _statusText =
+              '✅ $studentName — $studentMark/$totalMaxMark   (remove paper)';
         });
       }
 
       // Reset cooldown after 3s
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) setState(() {
-          _lastScannedId = null;
-          _statusText = 'Place next paper under camera';
-        });
+        if (mounted)
+          setState(() {
+            _lastScannedId = null;
+            _statusText = 'Place next paper under camera';
+          });
       });
     } catch (_) {
       _pendingId = null;
       _confirmCount = 0;
-      if (mounted) setState(() { _isProcessing = false; _statusText = 'Place paper under camera'; });
+      if (mounted)
+        setState(() {
+          _isProcessing = false;
+          _statusText = 'Place paper under camera';
+        });
     }
 
-    try { await File(photo.path).delete(); } catch (_) {}
+    try {
+      await File(photo.path).delete();
+    } catch (_) {}
   }
 
   @override
@@ -337,7 +369,9 @@ class _LiveScanScreenState extends State<LiveScanScreen>
 
           // ── Top bar ──
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: SafeArea(
               child: Container(
                 padding:
@@ -371,8 +405,7 @@ class _LiveScanScreenState extends State<LiveScanScreen>
                       ),
                     ),
                     IconButton(
-                      icon: Icon(
-                          _isTorchOn ? Icons.flash_on : Icons.flash_off,
+                      icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off,
                           color: _isTorchOn ? Colors.amber : Colors.white),
                       onPressed: () async {
                         setState(() => _isTorchOn = !_isTorchOn);
@@ -386,9 +419,8 @@ class _LiveScanScreenState extends State<LiveScanScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _scannedCount > 0
-                            ? Colors.green
-                            : Colors.white24,
+                        color:
+                            _scannedCount > 0 ? Colors.green : Colors.white24,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -420,7 +452,9 @@ class _LiveScanScreenState extends State<LiveScanScreen>
 
           // ── Bottom status / result ──
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: SafeArea(
               child: Container(
                 decoration: const BoxDecoration(
@@ -484,9 +518,10 @@ class _LiveScanScreenState extends State<LiveScanScreen>
                                       ? Colors.green.withOpacity(0.2)
                                       : Colors.red.withOpacity(0.2),
                               child: Text(
-                                '${_sessionResults.first['score']}%',
+                                '${_sessionResults.first['studentMark']}/${_sessionResults.first['totalMark']}',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color:
                                       (_sessionResults.first['score'] as int) >=
@@ -530,11 +565,13 @@ class _LiveScanScreenState extends State<LiveScanScreen>
           // ── Processing spinner ──
           if (_isProcessing)
             Positioned(
-              top: 90, left: 0, right: 0,
+              top: 90,
+              left: 0,
+              right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(30),
@@ -543,14 +580,14 @@ class _LiveScanScreenState extends State<LiveScanScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 16, height: 16,
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2),
                       ),
                       SizedBox(width: 10),
                       Text('Processing...',
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 13)),
+                          style: TextStyle(color: Colors.white, fontSize: 13)),
                     ],
                   ),
                 ),

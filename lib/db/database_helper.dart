@@ -312,11 +312,12 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getRecentScans(int limit, String? userId) async {
     final database = await db;
     final List<Map<String, dynamic>> res = await database.rawQuery('''
-      SELECT r.*, e.title as exam_title 
+      SELECT e.title as exam_title, MAX(r.date) as date, COUNT(r.id) as student_count, r.exam_id
       FROM results r
       JOIN exams e ON r.exam_id = e.id
       WHERE r.user_id = ? OR r.user_id IS NULL
-      ORDER BY r.date DESC
+      GROUP BY r.exam_id
+      ORDER BY date DESC
       LIMIT ?
     ''', [userId, limit]);
     return res;

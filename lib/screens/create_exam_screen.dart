@@ -23,7 +23,8 @@ class CreateExamScreen extends StatefulWidget {
 
 class _CreateExamScreenState extends State<CreateExamScreen> {
   final _formKey = GlobalKey<FormState>();
-  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   int _step = 0;
   String? _title;
   String? _subject;
@@ -32,9 +33,11 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   int _idDigits = 6; // Default student ID digits
   List<String?> _answerKey = List.filled(10, null);
   bool _manualEntry = true;
-  List<TextEditingController> _marksControllers = List.generate(10, (_) => TextEditingController(text: '1'));
+  List<TextEditingController> _marksControllers =
+      List.generate(10, (_) => TextEditingController(text: '1'));
 
-  List<String> get _choiceLabels => List.generate(_numChoices, (i) => String.fromCharCode(65 + i));
+  List<String> get _choiceLabels =>
+      List.generate(_numChoices, (i) => String.fromCharCode(65 + i));
 
   // Existing exams list
   List<Exam> _existingExams = [];
@@ -70,24 +73,31 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           backgroundColor: Colors.white,
           elevation: 2,
           iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
-          title: Text(loc.createExam, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          title: Text(loc.createExam,
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.bold)),
           centerTitle: true,
         ),
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
             child: Center(
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 700),
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
                 child: Column(
                   children: [
                     Card(
                       elevation: 8,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32)),
                       child: Padding(
                         padding: const EdgeInsets.all(32),
-                        child: _step == 0 ? _buildExamDetails(loc) : _buildAnswerKey(loc),
+                        child: _step == 0
+                            ? _buildExamDetails(loc)
+                            : _buildAnswerKey(loc),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -110,28 +120,38 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(loc.examTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          Text(loc.examTitle,
+              style:
+                  const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           TextFormField(
             decoration: InputDecoration(
               labelText: loc.examTitle,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
             ),
             onChanged: (v) => _title = v,
-            validator: (v) => v == null || v.trim().isEmpty ? loc.examTitle : null,
+            validator: (v) =>
+                v == null || v.trim().isEmpty ? loc.examTitle : null,
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
               labelText: loc.subject,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
             ),
             items: [
-              ...['Math', 'Science', 'History', 'English']
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s))),
-              if (_subject != null && !_subject!.isEmpty && !_isDuplicateSubject(_subject!))
+              DropdownMenuItem(value: 'Math', child: Text(loc.math)),
+              DropdownMenuItem(value: 'Science', child: Text(loc.science)),
+              DropdownMenuItem(value: 'History', child: Text(loc.history)),
+              DropdownMenuItem(value: 'English', child: Text(loc.english)),
+              if (_subject != null &&
+                  !_subject!.isEmpty &&
+                  !_isDuplicateSubject(_subject!))
                 DropdownMenuItem(value: _subject, child: Text(_subject!)),
-              DropdownMenuItem(value: 'add_new', child: Text('+ ${loc.subject}')),
+              DropdownMenuItem(
+                  value: 'add_new', child: Text('+ ${loc.subject}')),
             ],
             value: _subject,
             onChanged: (v) async {
@@ -141,7 +161,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                   builder: (context) {
                     String? tempSubject;
                     return AlertDialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                       title: Text(loc.subject),
                       content: TextField(
                         autofocus: true,
@@ -154,7 +175,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                           child: Text(loc.back),
                         ),
                         ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(tempSubject),
+                          onPressed: () =>
+                              Navigator.of(context).pop(tempSubject),
                           child: Text(loc.next),
                         ),
                       ],
@@ -176,19 +198,24 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           Row(
             children: [
               Expanded(
-                child: Text('${loc.numQuestions}: $_numQuestions', style: const TextStyle(fontSize: 16)),
+                child: Text('${loc.numQuestions}: $_numQuestions',
+                    style: const TextStyle(fontSize: 16)),
               ),
               IconButton(
-                icon: Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
-                onPressed: _numQuestions > 1 ? () => setState(() {
-                  _numQuestions--;
-                  if (_answerKey.length > _numQuestions) {
-                    _answerKey = _answerKey.sublist(0, _numQuestions);
-                  }
-                  if (_marksControllers.length > _numQuestions) {
-                    _marksControllers = _marksControllers.sublist(0, _numQuestions);
-                  }
-                }) : null,
+                icon:
+                    Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
+                onPressed: _numQuestions > 1
+                    ? () => setState(() {
+                          _numQuestions--;
+                          if (_answerKey.length > _numQuestions) {
+                            _answerKey = _answerKey.sublist(0, _numQuestions);
+                          }
+                          if (_marksControllers.length > _numQuestions) {
+                            _marksControllers =
+                                _marksControllers.sublist(0, _numQuestions);
+                          }
+                        })
+                    : null,
               ),
               IconButton(
                 icon: Icon(Icons.add_circle_outline, color: Color(0xFF007BFF)),
@@ -208,19 +235,25 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           Row(
             children: [
               Expanded(
-                child: Text('${loc.numChoices}: $_numChoices', style: const TextStyle(fontSize: 16)),
+                child: Text('${loc.numChoices}: $_numChoices',
+                    style: const TextStyle(fontSize: 16)),
               ),
               IconButton(
-                icon: Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
-                onPressed: _numChoices > 2 ? () => setState(() {
-                  _numChoices--;
-                }) : null,
+                icon:
+                    Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
+                onPressed: _numChoices > 2
+                    ? () => setState(() {
+                          _numChoices--;
+                        })
+                    : null,
               ),
               IconButton(
                 icon: Icon(Icons.add_circle_outline, color: Color(0xFF007BFF)),
-                onPressed: _numChoices < 8 ? () => setState(() {
-                  _numChoices++;
-                }) : null,
+                onPressed: _numChoices < 8
+                    ? () => setState(() {
+                          _numChoices++;
+                        })
+                    : null,
               ),
             ],
           ),
@@ -228,19 +261,25 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           Row(
             children: [
               Expanded(
-                child: Text('${loc.studentIdDigits}: $_idDigits', style: const TextStyle(fontSize: 16)),
+                child: Text('${loc.studentIdDigits}: $_idDigits',
+                    style: const TextStyle(fontSize: 16)),
               ),
               IconButton(
-                icon: Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
-                onPressed: _idDigits > 3 ? () => setState(() {
-                  _idDigits--;
-                }) : null,
+                icon:
+                    Icon(Icons.remove_circle_outline, color: Color(0xFF007BFF)),
+                onPressed: _idDigits > 3
+                    ? () => setState(() {
+                          _idDigits--;
+                        })
+                    : null,
               ),
               IconButton(
                 icon: Icon(Icons.add_circle_outline, color: Color(0xFF007BFF)),
-                onPressed: _idDigits < 12 ? () => setState(() {
-                  _idDigits++;
-                }) : null,
+                onPressed: _idDigits < 12
+                    ? () => setState(() {
+                          _idDigits++;
+                        })
+                    : null,
               ),
             ],
           ),
@@ -255,8 +294,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007BFF),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               ),
               child: Text(loc.next, style: const TextStyle(fontSize: 16)),
             ),
@@ -278,7 +319,9 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               onPressed: () => setState(() => _step = 0),
             ),
             const SizedBox(width: 8),
-            Text(loc.answerKey, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+            Text(loc.answerKey,
+                style:
+                    const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 24),
@@ -290,7 +333,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 selected: _manualEntry,
                 onSelected: (v) => setState(() => _manualEntry = true),
                 selectedColor: const Color(0xFF007BFF),
-                labelStyle: TextStyle(color: _manualEntry ? Colors.white : Colors.black),
+                labelStyle: TextStyle(
+                    color: _manualEntry ? Colors.white : Colors.black),
               ),
             ),
             const SizedBox(width: 12),
@@ -300,7 +344,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 selected: !_manualEntry,
                 onSelected: (v) => setState(() => _manualEntry = false),
                 selectedColor: const Color(0xFF007BFF),
-                labelStyle: TextStyle(color: !_manualEntry ? Colors.white : Colors.black),
+                labelStyle: TextStyle(
+                    color: !_manualEntry ? Colors.white : Colors.black),
               ),
             ),
           ],
@@ -316,7 +361,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Text('Q${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Q${i + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Wrap(
@@ -327,8 +373,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                             label: Text(opt),
                             selected: selected,
                             selectedColor: const Color(0xFF007BFF),
-                            labelStyle: TextStyle(color: selected ? Colors.white : Colors.black),
-                            onSelected: (_) => setState(() => _answerKey[i] = opt),
+                            labelStyle: TextStyle(
+                                color: selected ? Colors.white : Colors.black),
+                            onSelected: (_) =>
+                                setState(() => _answerKey[i] = opt),
                           );
                         }).toList(),
                       ),
@@ -342,8 +390,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                         decoration: InputDecoration(
                           labelText: loc.mark,
                           isDense: true,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                         ),
                       ),
                     ),
@@ -355,7 +405,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           if (_answerKey.any((a) => a == null))
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
-              child: Text(loc.answerKey, style: const TextStyle(color: Colors.red)),
+              child: Text(loc.answerKey,
+                  style: const TextStyle(color: Colors.red)),
             ),
         ] else ...[
           Container(
@@ -369,9 +420,11 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.upload_file, size: 36, color: Color(0xFF007BFF)),
+                  const Icon(Icons.upload_file,
+                      size: 36, color: Color(0xFF007BFF)),
                   const SizedBox(height: 8),
-                  Text(loc.autoEntry, style: TextStyle(color: Colors.grey[700])),
+                  Text(loc.autoEntry,
+                      style: TextStyle(color: Colors.grey[700])),
                 ],
               ),
             ),
@@ -395,12 +448,14 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 date: DateTime.now().toIso8601String(),
                 numQuestions: _numQuestions,
                 numChoices: _numChoices,
-                answerKey: '', // Not used, since questions are stored separately
+                answerKey:
+                    '', // Not used, since questions are stored separately
                 userId: auth.userId,
               );
               final examId = await db.insertExam(exam);
               for (int i = 0; i < _numQuestions; i++) {
-                final correctChoice = _choiceLabels.indexOf(_answerKey[i] ?? '');
+                final correctChoice =
+                    _choiceLabels.indexOf(_answerKey[i] ?? '');
                 final mark = int.tryParse(_marksControllers[i].text) ?? 1;
                 final question = Question(
                   examId: examId,
@@ -414,11 +469,13 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               final allExams = await db.getAllExams(auth.userId);
               print('All exams in DB:');
               for (final e in allExams) {
-                print('Exam: id=${e.id}, title=${e.title}, subject=${e.subject}, date=${e.date}, numQuestions=${e.numQuestions}, numChoices=${e.numChoices}');
+                print(
+                    'Exam: id=${e.id}, title=${e.title}, subject=${e.subject}, date=${e.date}, numQuestions=${e.numQuestions}, numChoices=${e.numChoices}');
                 // Print all questions for this exam
                 final questions = await db.getQuestionsByExamId(e.id!);
                 for (final q in questions) {
-                  print('  Question ${q.questionNumber}: correctChoice=${q.correctChoice}, mark=${q.mark}, examId=${q.examId}');
+                  print(
+                      '  Question ${q.questionNumber}: correctChoice=${q.correctChoice}, mark=${q.mark}, examId=${q.examId}');
                 }
               }
               // After saving to database, generate and save PDF
@@ -452,34 +509,40 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                       final file = File(outputPath);
                       await file.writeAsBytes(pdfBytes);
                       _scaffoldMessengerKey.currentState?.showSnackBar(
-                        SnackBar(content: Text('${loc.pdfSavedTo} $outputPath'), action: SnackBarAction(label: loc.view, onPressed: () => OpenFile.open(outputPath))),
+                        SnackBar(
+                            content: Text('${loc.pdfSavedTo} $outputPath'),
+                            action: SnackBarAction(
+                                label: loc.view,
+                                onPressed: () => OpenFile.open(outputPath))),
                       );
                     }
                   }
                 } catch (e) {
                   _scaffoldMessengerKey.currentState?.showSnackBar(
-                    SnackBar(content: Text('PDF save error: $e')),
+                    SnackBar(content: Text(loc.pdfSaveError(e.toString()))),
                   );
                 }
               }
               // Capture providers before async work
-              final syncProv = Provider.of<SyncProvider>(context, listen: false);
+              final syncProv =
+                  Provider.of<SyncProvider>(context, listen: false);
               final userId = auth.userId;
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(loc.examSaved)),
               );
-              
+
               // Trigger auto-sync silently in background
               syncProv.autoSync(userId);
-              
+
               if (mounted) {
                 Navigator.of(context).pop();
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007BFF),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             ),
             child: Text(loc.save, style: const TextStyle(fontSize: 16)),
@@ -495,8 +558,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
       barrierColor: Colors.black.withOpacity(0.18),
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
           backgroundColor: Colors.transparent,
           child: Container(
             constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
@@ -516,7 +581,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               children: [
                 // Title Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   child: Row(
                     children: [
                       Expanded(
@@ -525,20 +591,23 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                           children: [
                             Text(
                               _title ?? '',
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
                               _subject ?? '',
-                              style: const TextStyle(fontSize: 15, color: Colors.black54),
+                              style: const TextStyle(
+                                  fontSize: 15, color: Colors.black54),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 28, color: Colors.black54),
+                        icon: const Icon(Icons.close_rounded,
+                            size: 28, color: Colors.black54),
                         splashRadius: 22,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
@@ -549,7 +618,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 // Main Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 18),
                     child: Center(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 480),
@@ -558,7 +628,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                              border: Border.all(
+                                  color: Colors.grey[300]!, width: 1.5),
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
@@ -568,7 +639,8 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 18),
                             child: SingleChildScrollView(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,47 +650,79 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                     builder: (context, constraints) {
                                       return Builder(
                                         builder: (context) {
-                                          final loc = AppLocalizations.of(context)!;
-                                          double maxWidth = constraints.maxWidth - 90; // label + spacing
+                                          final loc =
+                                              AppLocalizations.of(context)!;
+                                          double maxWidth =
+                                              constraints.maxWidth -
+                                                  90; // label + spacing
                                           double minBubble = 14;
                                           double maxBubble = 22;
-                                          double bubble = (_idDigits * (maxBubble + 8) > maxWidth)
-                                            ? (maxWidth / _idDigits) - 8
-                                            : maxBubble;
-                                          bubble = bubble.clamp(minBubble, maxBubble);
+                                          double bubble =
+                                              (_idDigits * (maxBubble + 8) >
+                                                      maxWidth)
+                                                  ? (maxWidth / _idDigits) - 8
+                                                  : maxBubble;
+                                          bubble = bubble.clamp(
+                                              minBubble, maxBubble);
                                           return Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(loc.studentId, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                                  Text(loc.studentId,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600)),
                                                   const SizedBox(width: 12),
                                                   Expanded(
                                                     child: Wrap(
                                                       spacing: 8,
                                                       runSpacing: 2,
-                                                      children: List.generate(_idDigits, (d) => Column(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          for (int n = 0; n < 10; n++)
-                                                            Padding(
-                                                              padding: const EdgeInsets.symmetric(vertical: 1.2),
-                                                              child: Container(
-                                                                width: bubble,
-                                                                height: bubble,
-                                                                decoration: BoxDecoration(
-                                                                  shape: BoxShape.circle,
-                                                                  border: Border.all(color: Colors.black26, width: 1.1),
-                                                                  color: Colors.white,
-                                                                ),
-                                                                child: Center(
-                                                                  child: Text('$n', style: TextStyle(fontSize: bubble * 0.55, color: Colors.black54)),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                        ],
-                                                      )),
+                                                      children: List.generate(
+                                                          _idDigits,
+                                                          (d) => Column(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  for (int n =
+                                                                          0;
+                                                                      n < 10;
+                                                                      n++)
+                                                                    Padding(
+                                                                      padding: const EdgeInsets
+                                                                          .symmetric(
+                                                                          vertical:
+                                                                              1.2),
+                                                                      child:
+                                                                          Container(
+                                                                        width:
+                                                                            bubble,
+                                                                        height:
+                                                                            bubble,
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          shape:
+                                                                              BoxShape.circle,
+                                                                          border: Border.all(
+                                                                              color: Colors.black26,
+                                                                              width: 1.1),
+                                                                          color:
+                                                                              Colors.white,
+                                                                        ),
+                                                                        child:
+                                                                            Center(
+                                                                          child: Text(
+                                                                              '$n',
+                                                                              style: TextStyle(fontSize: bubble * 0.55, color: Colors.black54)),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                ],
+                                                              )),
                                                     ),
                                                   ),
                                                 ],
@@ -631,55 +735,93 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                   ),
                                   const SizedBox(height: 18),
                                   // Questions Section
-                                  ...List.generate(_numQuestions, (i) => Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 7),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 36,
-                                          child: Builder(
-                                            builder: (context) {
-                                              final loc = AppLocalizations.of(context)!;
-                                              return Text('${loc.question} ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600));
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ..._choiceLabels.map((opt) => Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                                          child: Column(
-                                            children: [
-                                              Container(
-                                                width: 18,
-                                                height: 18,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(color: Colors.black38, width: 1.2),
-                                                  color: Colors.white,
+                                  ...List.generate(
+                                      _numQuestions,
+                                      (i) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 7),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
+                                                  width: 36,
+                                                  child: Builder(
+                                                    builder: (context) {
+                                                      final loc =
+                                                          AppLocalizations.of(
+                                                              context)!;
+                                                      return Text(
+                                                          '${loc.question} ${i + 1}',
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600));
+                                                    },
+                                                  ),
                                                 ),
-                                              ),
-                                              Text(opt, style: const TextStyle(fontSize: 11)),
-                                            ],
-                                          ),
-                                        )),
-                                        const SizedBox(width: 10),
-                                        Builder(
-                                          builder: (context) {
-                                            final loc = AppLocalizations.of(context)!;
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF007BFF).withOpacity(0.09),
-                                                borderRadius: BorderRadius.circular(7),
-                                              ),
-                                              child: Text('${loc.mark}: ${_marksControllers.length > i ? _marksControllers[i].text : '1'}', style: const TextStyle(fontSize: 12, color: Color(0xFF007BFF))),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  )),
+                                                const SizedBox(width: 8),
+                                                ..._choiceLabels.map((opt) =>
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 4),
+                                                      child: Column(
+                                                        children: [
+                                                          Container(
+                                                            width: 18,
+                                                            height: 18,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                              border: Border.all(
+                                                                  color: Colors
+                                                                      .black38,
+                                                                  width: 1.2),
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ),
+                                                          Text(opt,
+                                                              style:
+                                                                  const TextStyle(
+                                                                      fontSize:
+                                                                          11)),
+                                                        ],
+                                                      ),
+                                                    )),
+                                                const SizedBox(width: 10),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final loc =
+                                                        AppLocalizations.of(
+                                                            context)!;
+                                                    return Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(
+                                                                0xFF007BFF)
+                                                            .withOpacity(0.09),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(7),
+                                                      ),
+                                                      child: Text(
+                                                          '${loc.mark}: ${_marksControllers.length > i ? _marksControllers[i].text : '1'}',
+                                                          style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color: Color(
+                                                                  0xFF007BFF))),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          )),
                                 ],
                               ),
                             ),
@@ -691,10 +833,12 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 ),
                 // Footer
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(28)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.03),
@@ -712,12 +856,17 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                         builder: (context) {
                           final loc = AppLocalizations.of(context)!;
                           return OutlinedButton.icon(
-                            icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF007BFF)),
-                            label: Text(loc.exportPdf, style: const TextStyle(color: Color(0xFF007BFF))),
+                            icon: const Icon(Icons.picture_as_pdf,
+                                color: Color(0xFF007BFF)),
+                            label: Text(loc.exportPdf,
+                                style:
+                                    const TextStyle(color: Color(0xFF007BFF))),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Color(0xFF007BFF)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 22, vertical: 12),
                             ),
                             onPressed: () async {
                               String fileName = '${_title ?? 'exam'}.pdf';
@@ -733,9 +882,12 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                               String? editedFileName = await showDialog<String>(
                                 context: context,
                                 builder: (dialogContext) {
-                                  final controller = TextEditingController(text: fileName);
+                                  final controller =
+                                      TextEditingController(text: fileName);
                                   return AlertDialog(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(24)),
                                     title: Text(loc.exportPdf),
                                     content: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -747,7 +899,9 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                           autofocus: true,
                                           decoration: InputDecoration(
                                             labelText: loc.fileName,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                            border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -761,22 +915,28 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.of(dialogContext).pop(),
+                                        onPressed: () =>
+                                            Navigator.of(dialogContext).pop(),
                                         child: Text(loc.cancel),
                                       ),
                                       ElevatedButton(
                                         onPressed: () {
                                           String name = controller.text.trim();
                                           // Remove invalid filename characters (Windows, macOS, Linux)
-                                          name = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
-                                          if (!name.toLowerCase().endsWith('.pdf')) {
-                                            name +='.pdf';
+                                          name = name.replaceAll(
+                                              RegExp(r'[\\/:*?"<>|]'), '');
+                                          if (!name
+                                              .toLowerCase()
+                                              .endsWith('.pdf')) {
+                                            name += '.pdf';
                                           }
                                           if (name.isEmpty || name == '.pdf') {
                                             // Show error (simple way: shake or ignore)
-                                            Navigator.of(dialogContext).pop(fileName); // fallback
+                                            Navigator.of(dialogContext)
+                                                .pop(fileName); // fallback
                                           } else {
-                                            Navigator.of(dialogContext).pop(name);
+                                            Navigator.of(dialogContext)
+                                                .pop(name);
                                           }
                                         },
                                         child: Text(loc.save),
@@ -789,19 +949,22 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                               fileName = editedFileName;
                               // Use DocumentFileSavePlus for Android, FilePicker for others
                               try {
-                                if (Theme.of(context).platform == TargetPlatform.android) {
+                                if (Theme.of(context).platform ==
+                                    TargetPlatform.android) {
                                   await DocumentFileSavePlus().saveFile(
                                     Uint8List.fromList(pdfBytes),
                                     fileName,
                                     "application/pdf",
                                   );
-                                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                                  _scaffoldMessengerKey.currentState
+                                      ?.showSnackBar(
                                     SnackBar(
                                       content: Text(loc.pdfSaved),
                                     ),
                                   );
                                 } else {
-                                  String? outputPath = await FilePicker.platform.saveFile(
+                                  String? outputPath =
+                                      await FilePicker.platform.saveFile(
                                     dialogTitle: loc.chooseSaveLocation,
                                     fileName: fileName,
                                     type: FileType.custom,
@@ -810,13 +973,21 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                   if (outputPath != null) {
                                     final file = File(outputPath);
                                     await file.writeAsBytes(pdfBytes);
-                                    _scaffoldMessengerKey.currentState?.showSnackBar(
-                                      SnackBar(content: Text('${loc.pdfSavedTo} $outputPath'), action: SnackBarAction(label: loc.view, onPressed: () => OpenFile.open(outputPath))),
+                                    _scaffoldMessengerKey.currentState
+                                        ?.showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              '${loc.pdfSavedTo} $outputPath'),
+                                          action: SnackBarAction(
+                                              label: loc.view,
+                                              onPressed: () =>
+                                                  OpenFile.open(outputPath))),
                                     );
                                   }
                                 }
                               } catch (e) {
-                                _scaffoldMessengerKey.currentState?.showSnackBar(
+                                _scaffoldMessengerKey.currentState
+                                    ?.showSnackBar(
                                   SnackBar(content: Text('Error: $e')),
                                 );
                               }
@@ -828,11 +999,16 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                         builder: (context) {
                           final loc = AppLocalizations.of(context)!;
                           return TextButton.icon(
-                            icon: const Icon(Icons.save_rounded, color: Color(0xFF007BFF)),
-                            label: Text(loc.save, style: const TextStyle(color: Color(0xFF007BFF))),
+                            icon: const Icon(Icons.save_rounded,
+                                color: Color(0xFF007BFF)),
+                            label: Text(loc.save,
+                                style:
+                                    const TextStyle(color: Color(0xFF007BFF))),
                             style: TextButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 22, vertical: 12),
                             ),
                             onPressed: () {
                               Navigator.of(context).pop();
@@ -841,11 +1017,14 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                 builder: (context) {
                                   final loc = AppLocalizations.of(context)!;
                                   return AlertDialog(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(24)),
                                     title: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.check_circle, color: Color(0xFF43A047), size: 48),
+                                        Icon(Icons.check_circle,
+                                            color: Color(0xFF43A047), size: 48),
                                         const SizedBox(height: 8),
                                         Text(loc.examCreated),
                                       ],
@@ -948,8 +1127,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                               final changed =
                                   await Navigator.of(context).push<bool>(
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      EditExamScreen(exam: exam),
+                                  builder: (_) => EditExamScreen(exam: exam),
                                 ),
                               );
                               if (changed == true) _loadExistingExams();
@@ -961,8 +1139,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                               side: const BorderSide(color: Colors.blue),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                           ),
                         ),
@@ -995,15 +1172,13 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                 ),
                               );
                               if (confirm == true) {
-                                final auth = Provider.of<AuthProvider>(
-                                    context,
+                                final auth = Provider.of<AuthProvider>(context,
                                     listen: false);
                                 await DatabaseHelper()
                                     .deleteExam(exam.id!, auth.userId);
                                 _loadExistingExams();
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
+                                  ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Exam deleted'),
                                       backgroundColor: Colors.red,
@@ -1019,8 +1194,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                               side: const BorderSide(color: Colors.red),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                           ),
                         ),
@@ -1073,6 +1247,6 @@ class _StepCircle extends StatelessWidget {
 }
 
 bool _isDuplicateSubject(String subject) {
-    final predefinedSubjects = ['Math', 'Science', 'History', 'English'];
-    return predefinedSubjects.contains(subject);
-  }
+  final predefinedSubjects = ['Math', 'Science', 'History', 'English'];
+  return predefinedSubjects.contains(subject);
+}
