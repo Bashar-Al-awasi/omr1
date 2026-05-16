@@ -44,4 +44,3 @@ app.*.map.json
 
 # Ignore generated intl_en.arb file from Flutter localization
 dart_tool/**/intl_en.arb
-lib/l10n/intl_en.arb
