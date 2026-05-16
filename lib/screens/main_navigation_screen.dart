@@ -24,8 +24,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeDashboardScreen(onTabChange: (index) {
         setState(() => _currentIndex = index);
       }),
-      const CreateExamScreen(),
-      const ResultsOverviewScreen(),
+      CreateExamScreen(onTabChange: (index) {
+        setState(() => _currentIndex = index);
+      }),
+      ResultsOverviewScreen(onTabChange: (index) {
+        setState(() => _currentIndex = index);
+      }),
       const ProfileScreen(),
     ];
   }

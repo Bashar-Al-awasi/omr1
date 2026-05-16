@@ -141,5 +141,10 @@
   "examDetails": "تفاصيل الاختبار",
   "saving": "جاري الحفظ...",
   "updateSuccess": "تم تحديث الاختبار بنجاح",
-  "delete": "حذف"
+  "delete": "حذف",
+  "selectStudentList": "اختر قائمة الطلاب",
+  "selectOrImportHint": "اختر قائمة موجودة أو استورد قائمة جديدة",
+  "importNewList": "استيراد قائمة جديدة",
+  "importNewListHint": "استخدم الزر أدناه لاستيراد أول قائمة",
+  "changeList": "تغيير"
 }

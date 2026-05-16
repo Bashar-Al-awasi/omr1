@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:excel/excel.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../db/database_helper.dart';
 import '../models/student.dart';
 
@@ -18,6 +19,31 @@ class StudentProvider extends ChangeNotifier {
 
   Future<void> load() async {
     students = await _db.getAllStudents(_userId);
+    notifyListeners();
+  }
+
+  /// Returns distinct student list groups as [{title, subject, count}].
+  List<Map<String, dynamic>> getListGroups() {
+    final Map<String, Map<String, dynamic>> groups = {};
+    for (final s in students) {
+      final key = '${s.title ?? ""}||${s.subject ?? ""}';
+      if (groups.containsKey(key)) {
+        groups[key]!['count'] = (groups[key]!['count'] as int) + 1;
+      } else {
+        groups[key] = {
+          'title': s.title ?? 'Unknown Title',
+          'subject': s.subject ?? 'Unknown Subject',
+          'count': 1,
+        };
+      }
+    }
+    return groups.values.toList();
+  }
+
+  /// Loads only students matching a specific title+subject into [students].
+  Future<void> loadByGroup(String title, String subject) async {
+    final all = await _db.getAllStudents(_userId);
+    students = all.where((s) => s.title == title && s.subject == subject).toList();
     notifyListeners();
   }
 
@@ -47,7 +73,7 @@ class StudentProvider extends ChangeNotifier {
     return await _db.getStudentByStudentId(id, _userId);
   }
 
-  Future<void> importFromFileWithMeta(File file, String subject, String title) async {
+  Future<int> importFromFileWithMeta(File file, String subject, String title) async {
     final lower = file.path.toLowerCase();
     final List<Student> parsed = [];
 
@@ -118,9 +144,81 @@ class StudentProvider extends ChangeNotifier {
           }
           break;
         }
+      } else if (lower.endsWith('.pdf')) {
+        final bytes = await file.readAsBytes();
+        final PdfDocument document = PdfDocument(inputBytes: bytes);
+        final PdfTextExtractor extractor = PdfTextExtractor(document);
+        
+        final String text = extractor.extractText();
+        // Split by lines and clean them
+        final List<String> lines = text.split(RegExp(r'\r?\n')).map((e) => e.trim()).toList();
+        
+        // Regex for ID: 5 to 10 digits
+        final idRegex = RegExp(r'\b\d{5,10}\b');
+
+        for (int i = 0; i < lines.length; i++) {
+          final line = lines[i];
+          if (line.isEmpty) continue;
+          
+          // Try to find an ID in this line
+          final match = idRegex.firstMatch(line);
+          
+          if (match != null) {
+            final String id = match.group(0)!;
+            String? name;
+
+            // Case 1: ID is on its own line
+            if (line == id) {
+              // Look backward for name
+              for (int j = i - 1; j >= 0 && j >= i - 3; j--) {
+                final prev = lines[j];
+                if (prev.isEmpty) continue;
+                // If it's not a number and looks like a name
+                if (!RegExp(r'^\d+$').hasMatch(prev) && prev.length > 3) {
+                  name = prev;
+                  break;
+                }
+              }
+            } else {
+              // Case 2: Name and ID are on the same line
+              // Pattern usually: [SNO] [Name] [ID] or [Name] [ID]
+              final parts = line.split(RegExp(r'\s+'));
+              int idIdx = -1;
+              for (int j = 0; j < parts.length; j++) {
+                if (parts[j].contains(id)) {
+                  idIdx = j;
+                  break;
+                }
+              }
+              
+              if (idIdx != -1) {
+                // Name is everything before the ID part (skipping SNO if it's the first part)
+                int start = (idIdx > 1 && RegExp(r'^\d+$').hasMatch(parts[0])) ? 1 : 0;
+                if (idIdx > start) {
+                  name = parts.sublist(start, idIdx).join(' ').trim();
+                }
+              }
+            }
+
+            if (name != null && name.length > 3 && !name.toLowerCase().contains('name') && !name.toLowerCase().contains('subject')) {
+              parsed.add(Student(
+                studentId: id,
+                name: name,
+                subject: subject,
+                title: title,
+                userId: _userId,
+              ));
+            }
+          }
+        }
+        document.dispose();
       }
 
-      if (parsed.isNotEmpty) await addStudents(parsed);
+      if (parsed.isNotEmpty) {
+        await addStudents(parsed);
+        return parsed.length;
+      }
+      return 0;
     } catch (e) {
       if (kDebugMode) print('Import error: $e');
       rethrow;

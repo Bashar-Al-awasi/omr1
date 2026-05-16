@@ -15,7 +15,8 @@ import 'package:omr1/providers/sync_provider.dart';
 import 'edit_exam_screen.dart';
 
 class CreateExamScreen extends StatefulWidget {
-  const CreateExamScreen({super.key});
+  final Function(int)? onTabChange;
+  const CreateExamScreen({super.key, this.onTabChange});
 
   @override
   State<CreateExamScreen> createState() => _CreateExamScreenState();
@@ -67,7 +68,15 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     final loc = AppLocalizations.of(context)!; // Access localizations
     return ScaffoldMessenger(
       key: _scaffoldMessengerKey,
-      child: Scaffold(
+      child: PopScope(
+        canPop: Navigator.of(context).canPop(),
+        onPopInvoked: (didPop) {
+          if (didPop) return;
+          if (widget.onTabChange != null) {
+            widget.onTabChange!(0);
+          }
+        },
+        child: Scaffold(
         backgroundColor: const Color(0xFFF4F6FB),
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -77,6 +86,16 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.bold)),
           centerTitle: true,
+          leading: !Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    if (widget.onTabChange != null) {
+                      widget.onTabChange!(0);
+                    }
+                  },
+                )
+              : null,
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -110,8 +129,9 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildExamDetails(AppLocalizations loc) {
     return Form(
@@ -439,56 +459,51 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                 setState(() {});
                 return;
               }
-              // Save exam and questions to database
-              final db = DatabaseHelper();
-              final auth = Provider.of<AuthProvider>(context, listen: false);
-              final exam = Exam(
-                title: _title ?? '',
-                subject: _subject ?? '',
-                date: DateTime.now().toIso8601String(),
-                numQuestions: _numQuestions,
-                numChoices: _numChoices,
-                answerKey:
-                    '', // Not used, since questions are stored separately
-                userId: auth.userId,
-              );
-              final examId = await db.insertExam(exam);
-              for (int i = 0; i < _numQuestions; i++) {
-                final correctChoice =
-                    _choiceLabels.indexOf(_answerKey[i] ?? '');
-                final mark = int.tryParse(_marksControllers[i].text) ?? 1;
-                final question = Question(
-                  examId: examId,
-                  questionNumber: i + 1,
-                  correctChoice: correctChoice,
-                  mark: mark,
-                );
-                await db.insertQuestion(question);
-              }
-              // Print all exams to debug console
-              final allExams = await db.getAllExams(auth.userId);
-              print('All exams in DB:');
-              for (final e in allExams) {
-                print(
-                    'Exam: id=${e.id}, title=${e.title}, subject=${e.subject}, date=${e.date}, numQuestions=${e.numQuestions}, numChoices=${e.numChoices}');
-                // Print all questions for this exam
-                final questions = await db.getQuestionsByExamId(e.id!);
-                for (final q in questions) {
-                  print(
-                      '  Question ${q.questionNumber}: correctChoice=${q.correctChoice}, mark=${q.mark}, examId=${q.examId}');
-                }
-              }
-              // After saving to database, generate and save PDF
-              String fileName = '${_title ?? 'exam'}.pdf';
-              final pdfBytes = await printOmrExamPaper(
+
+              // Show loading dialog
+              showDialog(
                 context: context,
-                examTitle: _title ?? '',
-                idDigits: _idDigits,
-                numQuestions: _numQuestions,
-                numChoices: _numChoices,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
               );
-              if (pdfBytes.isNotEmpty) {
-                try {
+
+              try {
+                // Save exam and questions to database
+                final db = DatabaseHelper();
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                final exam = Exam(
+                  title: _title ?? '',
+                  subject: _subject ?? '',
+                  date: DateTime.now().toIso8601String(),
+                  numQuestions: _numQuestions,
+                  numChoices: _numChoices,
+                  answerKey: '', 
+                  userId: auth.userId,
+                );
+                final examId = await db.insertExam(exam);
+                for (int i = 0; i < _numQuestions; i++) {
+                  final correctChoice = _choiceLabels.indexOf(_answerKey[i] ?? '');
+                  final mark = int.tryParse(_marksControllers[i].text) ?? 1;
+                  final question = Question(
+                    examId: examId,
+                    questionNumber: i + 1,
+                    correctChoice: correctChoice,
+                    mark: mark,
+                  );
+                  await db.insertQuestion(question);
+                }
+
+                // Generate and save PDF
+                String fileName = '${_title ?? 'exam'}.pdf';
+                final pdfBytes = await printOmrExamPaper(
+                  context: context,
+                  examTitle: _title ?? '',
+                  idDigits: _idDigits,
+                  numQuestions: _numQuestions,
+                  numChoices: _numChoices,
+                );
+
+                if (pdfBytes.isNotEmpty) {
                   if (Theme.of(context).platform == TargetPlatform.android) {
                     await DocumentFileSavePlus().saveFile(
                       Uint8List.fromList(pdfBytes),
@@ -517,26 +532,41 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                       );
                     }
                   }
-                } catch (e) {
-                  _scaffoldMessengerKey.currentState?.showSnackBar(
-                    SnackBar(content: Text(loc.pdfSaveError(e.toString()))),
-                  );
                 }
-              }
-              // Capture providers before async work
-              final syncProv =
-                  Provider.of<SyncProvider>(context, listen: false);
-              final userId = auth.userId;
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(loc.examSaved)),
-              );
+                final syncProv = Provider.of<SyncProvider>(context, listen: false);
+                final userId = auth.userId;
+                syncProv.autoSync(userId);
 
-              // Trigger auto-sync silently in background
-              syncProv.autoSync(userId);
+                if (mounted) {
+                  Navigator.of(context).pop(); // Dismiss loading dialog
+                  
+                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                    SnackBar(content: Text(loc.examSaved)),
+                  );
 
-              if (mounted) {
-                Navigator.of(context).pop();
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop(); // Return to previous screen
+                  } else {
+                    // Reset form for the tab view
+                    setState(() {
+                      _step = 0;
+                      _title = null;
+                      _subject = null;
+                      _numQuestions = 10;
+                      _numChoices = 5;
+                      _idDigits = 6;
+                      _answerKey = List.filled(10, null);
+                      _marksControllers = List.generate(10, (_) => TextEditingController(text: '1'));
+                    });
+                    _loadExistingExams();
+                  }
+                }
+              } catch (e) {
+                if (mounted) Navigator.of(context).pop(); // Dismiss loading dialog
+                _scaffoldMessengerKey.currentState?.showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

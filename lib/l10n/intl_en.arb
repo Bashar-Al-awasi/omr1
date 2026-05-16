@@ -141,5 +141,10 @@
   "examDetails": "Exam Details",
   "saving": "Saving...",
   "updateSuccess": "Exam updated successfully",
-  "delete": "Delete"
+  "delete": "Delete",
+  "selectStudentList": "Select Student List",
+  "selectOrImportHint": "Choose an existing list or import a new one",
+  "importNewList": "Import New List",
+  "importNewListHint": "Use the button below to import your first list",
+  "changeList": "Change"
 }

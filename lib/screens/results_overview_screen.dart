@@ -8,7 +8,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 class ResultsOverviewScreen extends StatefulWidget {
-  const ResultsOverviewScreen({super.key});
+  final Function(int)? onTabChange;
+  const ResultsOverviewScreen({super.key, this.onTabChange});
 
   @override
   State<ResultsOverviewScreen> createState() => _ResultsOverviewScreenState();
@@ -95,14 +96,34 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
-        title: Text(loc.resultsOverview, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), // Localized
-      ),
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (widget.onTabChange != null) {
+          widget.onTabChange!(0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F8FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFF007BFF)),
+          title: Text(loc.resultsOverview,
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.bold)),
+          leading: !Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    if (widget.onTabChange != null) {
+                      widget.onTabChange!(0);
+                    }
+                  },
+                )
+              : null,
+        ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -168,8 +189,9 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ResultSummaryCard extends StatelessWidget {

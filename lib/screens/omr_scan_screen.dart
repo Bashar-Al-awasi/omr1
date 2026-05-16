@@ -24,7 +24,8 @@ class OmrScanScreen extends StatefulWidget {
 }
 
 class _OmrScanScreenState extends State<OmrScanScreen> {
-  String? _studentFileName;
+  String? _selectedListTitle;
+  String? _selectedListSubject;
   String? _scanResult;
   File? _selectedImage;
   String? _tempIdResult;
@@ -65,87 +66,407 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
     }
   }
 
-  Future<void> _pickStudentFile(AppLocalizations loc) async {
-    String? title;
-    String? subject;
-    await showDialog(
+  /// Shows a bottom sheet with existing student lists + an import option.
+  Future<void> _showStudentListPicker(AppLocalizations loc) async {
+    final provider = Provider.of<StudentProvider>(context, listen: false);
+    // Make sure all students are loaded first
+    await provider.load();
+    final groups = provider.getListGroups();
+
+    if (!mounted) return;
+
+    final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final titleController = TextEditingController();
-        final subjectController = TextEditingController();
-        return AlertDialog(
-          title: const Text('New List Info'),
-          content: Column(
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
+              // Handle bar
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 4),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-              TextField(
-                controller: subjectController,
-                decoration: const InputDecoration(labelText: 'Subject'),
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007BFF).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.people_alt_rounded,
+                          color: Color(0xFF007BFF), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(loc.selectStudentList,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w800)),
+                          Text(loc.selectOrImportHint,
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
               ),
+              const Divider(height: 1),
+              // List of existing groups
+              if (groups.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.folder_off_outlined,
+                          size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 12),
+                      Text(loc.noStudentsImported,
+                          style: TextStyle(
+                              color: Colors.grey[500],
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(loc.importNewListHint,
+                          style: TextStyle(
+                              color: Colors.grey[400], fontSize: 12)),
+                    ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    itemCount: groups.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final g = groups[i];
+                      final isSelected =
+                          _selectedListTitle == g['title'] &&
+                              _selectedListSubject == g['subject'];
+                      return Material(
+                        color: isSelected
+                            ? const Color(0xFF007BFF).withOpacity(0.08)
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            Navigator.of(ctx).pop({
+                              'title': g['title'] as String,
+                              'subject': g['subject'] as String,
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFF007BFF)
+                                            .withOpacity(0.15)
+                                        : Colors.blueGrey.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(Icons.folder_shared,
+                                      color: isSelected
+                                          ? const Color(0xFF007BFF)
+                                          : Colors.blueGrey,
+                                      size: 22),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(g['title'] as String,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              color: isSelected
+                                                  ? const Color(0xFF007BFF)
+                                                  : Colors.black87)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                          '${g['subject']}  •  ${loc.studentsCount(g['count'] as int)}',
+                                          style: TextStyle(
+                                              color: Colors.grey[500],
+                                              fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(Icons.check_circle,
+                                      color: Color(0xFF007BFF), size: 22)
+                                else
+                                  Icon(Icons.chevron_right,
+                                      color: Colors.grey[400], size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              // Import new list button
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: Text(loc.importNewList,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF43A047),
+                      side: const BorderSide(color: Color(0xFF43A047)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop({'action': 'import'});
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(ctx).padding.bottom + 8),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                title = titleController.text.trim();
-                subject = subjectController.text.trim();
-                Navigator.of(ctx).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
         );
       },
     );
-    if (title == null || title!.isEmpty || subject == null || subject!.isEmpty)
-      return;
 
-    final result = await FilePicker.platform.pickFiles(
+    if (result == null) return;
+
+    // User chose to import a new list
+    if (result.containsKey('action') && result['action'] == 'import') {
+      await _importNewStudentList(loc);
+      return;
+    }
+
+    // User selected an existing list
+    final title = result['title']!;
+    final subject = result['subject']!;
+    await provider.loadByGroup(title, subject);
+    if (mounted) {
+      setState(() {
+        _selectedListTitle = title;
+        _selectedListSubject = subject;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(loc.studentsLoaded(provider.students.length)),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF007BFF),
+      ));
+    }
+  }
+
+  /// Import a new student list (title/subject dialog + file picker).
+  Future<void> _importNewStudentList(AppLocalizations loc) async {
+
+    final meta = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final titleController = TextEditingController();
+        final subjectController = TextEditingController();
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF43A047).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.drive_folder_upload,
+                          color: Color(0xFF43A047), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(loc.newListInfo,
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800)),
+                          Text(loc.importDetailsSubtitle,
+                              style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: loc.title,
+                    prefixIcon: const Icon(Icons.title),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: subjectController,
+                  decoration: InputDecoration(
+                    labelText: loc.subject,
+                    prefixIcon: const Icon(Icons.book_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final t = titleController.text.trim();
+                      final s = subjectController.text.trim();
+                      if (t.isNotEmpty && s.isNotEmpty) {
+                        Navigator.of(ctx)
+                            .pop({'title': t, 'subject': s});
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF43A047),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(loc.next,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (meta == null) return;
+    final String title = meta['title']!;
+    final String subject = meta['subject']!;
+
+    final fileResult = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['csv', 'txt', 'xls', 'xlsx'],
+      allowedExtensions: ['csv', 'txt', 'xls', 'xlsx', 'pdf'],
       withData: true,
     );
-    if (result == null) return;
-    final file = result.files.single;
-    _studentFileName = file.name;
+    if (fileResult == null) return;
+    final file = fileResult.files.single;
     final provider = Provider.of<StudentProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+    int importedCount = 0;
     try {
       if (file.path != null) {
-        await provider.importFromFileWithMeta(
-            File(file.path!), subject!, title!);
+        importedCount = await provider.importFromFileWithMeta(
+            File(file.path!), subject, title);
       } else if (file.bytes != null) {
         final tmp = await Directory.systemTemp.createTemp('omr_students');
         final f = File('${tmp.path}/${file.name}');
         await f.writeAsBytes(file.bytes!);
-        await provider.importFromFileWithMeta(f, subject!, title!);
+        importedCount = await provider.importFromFileWithMeta(f, subject, title);
       }
+      // Automatically select the newly imported list
+      await provider.loadByGroup(title, subject);
       if (!mounted) return;
+      setState(() {
+        _selectedListTitle = title;
+        _selectedListSubject = subject;
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(loc.studentsLoaded(provider.students.length))));
+        content: Text(importedCount > 0 
+          ? loc.studentsLoaded(importedCount)
+          : "No students found in the file structure."),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: importedCount > 0 ? const Color(0xFF43A047) : Colors.orange[800],
+      ));
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loc.importFailed(e.toString()))));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(loc.importFailed(e.toString())),
+            backgroundColor: Colors.red[700]));
+      }
     } finally {
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
-        Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+        Provider.of<SyncProvider>(context, listen: false)
+            .autoSync(auth.userId);
         setState(() {});
       }
     }
@@ -335,66 +656,107 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Student file upload card
-              //base
-              Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                elevation: 3,
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                  child: Row(
-                    children: [
-                      Icon(Icons.upload_file,
-                          color: Color(0xFF43A047), size: 32),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(loc.uploadStudentList,
+              // Student list selection card
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => _showStudentListPicker(loc),
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  elevation: 3,
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _selectedListTitle != null
+                                ? const Color(0xFF007BFF).withOpacity(0.1)
+                                : const Color(0xFF43A047).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            _selectedListTitle != null
+                                ? Icons.people_alt_rounded
+                                : Icons.playlist_add,
+                            color: _selectedListTitle != null
+                                ? const Color(0xFF007BFF)
+                                : const Color(0xFF43A047),
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedListTitle != null
+                                    ? _selectedListTitle!
+                                    : loc.selectStudentList,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            if (_studentFileName != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(_studentFileName!,
-                                    style: TextStyle(
-                                        fontSize: 13, color: Colors.grey[700]),
-                                    overflow: TextOverflow.ellipsis),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: _selectedListTitle != null
+                                      ? Colors.black87
+                                      : Colors.grey[700],
+                                ),
                               ),
-                            Consumer<StudentProvider>(builder: (_, prov, __) {
-                              return prov.students.isNotEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                          '(${prov.students.length} ${loc.students})',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600])),
-                                    )
-                                  : const SizedBox.shrink();
-                            }),
-                          ],
+                              const SizedBox(height: 2),
+                              if (_selectedListTitle != null)
+                                Consumer<StudentProvider>(
+                                    builder: (_, prov, __) {
+                                  return Text(
+                                    '${_selectedListSubject ?? ""}  •  ${loc.studentsCount(prov.students.length)}',
+                                    style: TextStyle(
+                                        color: Colors.grey[500], fontSize: 12),
+                                  );
+                                })
+                              else
+                                Text(loc.selectOrImportHint,
+                                    style: TextStyle(
+                                        color: Colors.grey[400], fontSize: 12)),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: () => _pickStudentFile(loc),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF43A047),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                        const SizedBox(width: 8),
+                        Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 12),
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _selectedListTitle != null
+                                ? const Color(0xFF007BFF)
+                                : const Color(0xFF43A047),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _selectedListTitle != null
+                                    ? Icons.swap_horiz
+                                    : Icons.add,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _selectedListTitle != null
+                                    ? loc.changeList
+                                    : loc.chooseFile,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Text(loc.chooseFile,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

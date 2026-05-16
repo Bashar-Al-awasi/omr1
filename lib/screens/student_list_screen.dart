@@ -119,7 +119,7 @@ class StudentListScreen extends StatelessWidget {
     final fileResult = await FilePicker.platform.pickFiles(
         allowMultiple: false,
         type: FileType.custom,
-        allowedExtensions: ['csv', 'txt', 'xls', 'xlsx']);
+        allowedExtensions: ['csv', 'txt', 'xls', 'xlsx', 'pdf']);
     if (fileResult == null) return;
     final path = fileResult.files.single.path;
     if (path == null) return;
@@ -135,22 +135,22 @@ class StudentListScreen extends StatelessWidget {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
     try {
-      await provider.importFromFileWithMeta(file, subject, title);
+      final int count = await provider.importFromFileWithMeta(file, subject, title);
       // Trigger auto-sync
       final auth = Provider.of<AuthProvider>(context, listen: false);
       Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
 
+      if (context.mounted) Navigator.of(context).pop(); // Close loading dialog
+      
       messenger.showSnackBar(SnackBar(
-        content: Text(loc.importComplete),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.green[700],
+        content: Text(count > 0 ? loc.studentsLoaded(count) : "No students found in the file structure."),
+        backgroundColor: count > 0 ? Colors.green : Colors.orange[800],
       ));
     } catch (e) {
+      if (context.mounted) Navigator.of(context).pop(); // Close loading dialog
       messenger.showSnackBar(SnackBar(
           content: Text(loc.importFailed(e.toString())),
           backgroundColor: Colors.red[700]));
-    } finally {
-      navigator.pop();
     }
   }
 
