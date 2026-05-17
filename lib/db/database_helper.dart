@@ -146,6 +146,15 @@ class DatabaseHelper {
     await database.delete('students', where: 'user_id = ?', whereArgs: [userId]);
   }
 
+  Future<void> deleteStudentsByGroup(String title, String subject, String? userId) async {
+    final database = await db;
+    await database.delete(
+      'students', 
+      where: 'title = ? AND subject = ? AND (user_id = ? OR user_id IS NULL)', 
+      whereArgs: [title, subject, userId]
+    );
+  }
+
   // Exam methods
   Future<int> insertExam(Exam exam) async {
     final database = await db;

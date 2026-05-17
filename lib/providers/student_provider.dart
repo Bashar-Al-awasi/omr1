@@ -47,6 +47,11 @@ class StudentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteGroup(String title, String subject) async {
+    await _db.deleteStudentsByGroup(title, subject, _userId);
+    await load();
+  }
+
   Future<void> addStudents(List<Student> list) async {
     for (var s in list) {
       final sWithUser = Student(

@@ -302,12 +302,40 @@ class StudentListScreen extends StatelessWidget {
                           subtitle: Text(loc.studentsCount(students.length),
                               style: TextStyle(
                                   color: Colors.grey[600], fontSize: 13)),
-                          trailing: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                                color: Colors.grey[50], shape: BoxShape.circle),
-                            child: const Icon(Icons.chevron_right,
-                                size: 20, color: Colors.grey),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete List?'),
+                                      content: Text('Are you sure you want to delete "$title"? This removes all students in this list.'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                        TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    final provider = Provider.of<StudentProvider>(context, listen: false);
+                                    await provider.deleteGroup(title, subject);
+                                    final auth = Provider.of<AuthProvider>(context, listen: false);
+                                    Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+                                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('List deleted')));
+                                  }
+                                },
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                    color: Colors.grey[50], shape: BoxShape.circle),
+                                child: const Icon(Icons.chevron_right,
+                                    size: 20, color: Colors.grey),
+                              ),
+                            ],
                           ),
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
