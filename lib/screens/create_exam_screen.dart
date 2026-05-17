@@ -19,10 +19,10 @@ class CreateExamScreen extends StatefulWidget {
   const CreateExamScreen({super.key, this.onTabChange});
 
   @override
-  State<CreateExamScreen> createState() => _CreateExamScreenState();
+  State<CreateExamScreen> createState() => CreateExamScreenState();
 }
 
-class _CreateExamScreenState extends State<CreateExamScreen> {
+class CreateExamScreenState extends State<CreateExamScreen> {
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
@@ -46,10 +46,10 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadExistingExams();
+    loadExistingExams();
   }
 
-  Future<void> _loadExistingExams() async {
+  Future<void> loadExistingExams() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final exams = await DatabaseHelper().getAllExams(auth.userId);
     if (mounted) setState(() => _existingExams = exams);
@@ -559,7 +559,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                       _answerKey = List.filled(10, null);
                       _marksControllers = List.generate(10, (_) => TextEditingController(text: '1'));
                     });
-                    _loadExistingExams();
+                    loadExistingExams();
                   }
                 }
               } catch (e) {
@@ -1160,7 +1160,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                   builder: (_) => EditExamScreen(exam: exam),
                                 ),
                               );
-                              if (changed == true) _loadExistingExams();
+                              if (changed == true) loadExistingExams();
                             },
                             icon: const Icon(Icons.edit, size: 16),
                             label: const Text('Edit'),
@@ -1206,7 +1206,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
                                     listen: false);
                                 await DatabaseHelper()
                                     .deleteExam(exam.id!, auth.userId);
-                                _loadExistingExams();
+                                loadExistingExams();
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(

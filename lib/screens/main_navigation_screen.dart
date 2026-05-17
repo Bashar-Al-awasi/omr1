@@ -15,23 +15,48 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  
+  final GlobalKey<HomeDashboardScreenState> _homeKey = GlobalKey();
+  final GlobalKey<CreateExamScreenState> _createExamKey = GlobalKey();
+  final GlobalKey<ResultsOverviewScreenState> _resultsKey = GlobalKey();
+  
   late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      HomeDashboardScreen(onTabChange: (index) {
-        setState(() => _currentIndex = index);
-      }),
-      CreateExamScreen(onTabChange: (index) {
-        setState(() => _currentIndex = index);
-      }),
-      ResultsOverviewScreen(onTabChange: (index) {
-        setState(() => _currentIndex = index);
-      }),
+      HomeDashboardScreen(
+        key: _homeKey,
+        onTabChange: (index) {
+          _changeTab(index);
+        },
+      ),
+      CreateExamScreen(
+        key: _createExamKey,
+        onTabChange: (index) {
+          _changeTab(index);
+        },
+      ),
+      ResultsOverviewScreen(
+        key: _resultsKey,
+        onTabChange: (index) {
+          _changeTab(index);
+        },
+      ),
       const ProfileScreen(),
     ];
+  }
+
+  void _changeTab(int index) {
+    setState(() => _currentIndex = index);
+    if (index == 0) {
+      _homeKey.currentState?.refreshData();
+    } else if (index == 1) {
+      _createExamKey.currentState?.loadExistingExams();
+    } else if (index == 2) {
+      _resultsKey.currentState?.loadData();
+    }
   }
 
   @override
@@ -46,7 +71,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const OmrScanScreen()),
-          );
+          ).then((_) {
+            // Refresh current tab on returning from scan in case data changed
+            _changeTab(_currentIndex);
+          });
         },
         backgroundColor: Colors.blue,
         elevation: 8,
@@ -77,7 +105,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _currentIndex == index;
     return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () => _changeTab(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

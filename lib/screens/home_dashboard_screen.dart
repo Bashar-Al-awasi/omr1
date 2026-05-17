@@ -14,17 +14,17 @@ class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({super.key, this.onTabChange});
 
   @override
-  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+  State<HomeDashboardScreen> createState() => HomeDashboardScreenState();
 }
 
-class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+class HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<Map<String, dynamic>>? _statsFuture;
   Future<List<Map<String, dynamic>>>? _recentScansFuture;
 
   @override
   void initState() {
     super.initState();
-    _refreshData();
+    refreshData();
     // Auto-sync on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -33,7 +33,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     });
   }
 
-  void _refreshData() {
+  void refreshData() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     setState(() {
       _statsFuture = DatabaseHelper().getDashboardStats(auth.userId);
@@ -90,7 +90,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            _refreshData();
+            refreshData();
           },
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -189,7 +189,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                           MaterialPageRoute(
                               builder: (_) => const CreateExamScreen()),
                         );
-                        _refreshData();
+                        refreshData();
                       }
                     },
                   ),
@@ -201,7 +201,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         MaterialPageRoute(
                             builder: (_) => const OmrScanScreen()),
                       );
-                      _refreshData();
+                      refreshData();
                     },
                   ),
                   _QuickActionModern(
@@ -217,7 +217,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                   builder: (_) =>
                                       const ResultsOverviewScreen()),
                             )
-                            .then((_) => _refreshData());
+                            .then((_) => refreshData());
                       }
                     },
                   ),
@@ -227,7 +227,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     onTap: () {
                       Navigator.of(context)
                           .pushNamed('/students')
-                          .then((_) => _refreshData());
+                          .then((_) => refreshData());
                     },
                   ),
                 ],
@@ -316,13 +316,42 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               : null,
         ),
       ),
-      onSelected: (value) {
+      onSelected: (value) async {
         if (value == 'logout') {
           auth.signOut();
         } else if (value == 'en') {
           localeProvider.setLocale(const Locale('en'));
         } else if (value == 'ar') {
           localeProvider.setLocale(const Locale('ar'));
+        } else if (value == 'sync') {
+          if (auth.userId != null) {
+            final messenger = ScaffoldMessenger.of(context);
+            final isAr = currentLocale.languageCode == 'ar';
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(isAr ? 'جاري المزامنة مع السحابة...' : 'Syncing with cloud...'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+            try {
+              final syncProv = Provider.of<SyncProvider>(context, listen: false);
+              final summary = await syncProv.syncToCloud(auth.userId!);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(summary),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              refreshData();
+            } catch (e) {
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(isAr ? 'فشلت المزامنة: $e' : 'Sync failed: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
         }
       },
       itemBuilder: (context) => [
@@ -343,6 +372,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const Divider(),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'sync',
+          child: Row(
+            children: [
+              const Icon(Icons.sync_rounded, color: Colors.blue, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                currentLocale.languageCode == 'ar' ? 'مزامنة الآن' : 'Sync Now',
+                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),

@@ -12,10 +12,10 @@ class ResultsOverviewScreen extends StatefulWidget {
   const ResultsOverviewScreen({super.key, this.onTabChange});
 
   @override
-  State<ResultsOverviewScreen> createState() => _ResultsOverviewScreenState();
+  State<ResultsOverviewScreen> createState() => ResultsOverviewScreenState();
 }
 
-class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
+class ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
   List<Map<String, dynamic>> _examSummaries = [];
   int _totalExams = 0;
   int _totalSheets = 0;
@@ -25,10 +25,10 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> loadData() async {
     final db = DatabaseHelper();
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final exams = await db.getAllExams(auth.userId);
@@ -182,7 +182,7 @@ class _ResultsOverviewScreenState extends State<ResultsOverviewScreen> {
                       ),
                     ),
                   );
-                  _loadData(); // Refresh overview after returning (in case a result was deleted)
+                  loadData(); // Refresh overview after returning (in case a result was deleted)
                 },
               );
             }).toList(),

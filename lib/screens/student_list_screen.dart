@@ -9,8 +9,21 @@ import '../providers/sync_provider.dart';
 import '../models/student.dart';
 import 'student_group_screen.dart';
 
-class StudentListScreen extends StatelessWidget {
+class StudentListScreen extends StatefulWidget {
   const StudentListScreen({super.key});
+
+  @override
+  State<StudentListScreen> createState() => _StudentListScreenState();
+}
+
+class _StudentListScreenState extends State<StudentListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<StudentProvider>(context, listen: false).load();
+    });
+  }
 
   Future<void> _pickAndImport(BuildContext context) async {
     final loc = AppLocalizations.of(context)!;

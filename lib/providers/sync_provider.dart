@@ -37,20 +37,40 @@ class SyncProvider with ChangeNotifier {
   Future<void> autoSync(String? userId) async {
     if (userId == null || _isSyncing) return;
     
+    _isSyncing = true;
+    notifyListeners();
+    
     try {
-      final result = await InternetAddress.lookup('google.com').timeout(const Duration(seconds: 3));
-      if (result.isEmpty || result[0].rawAddress.isEmpty) return;
+      bool hasConnection = false;
+      try {
+        final result = await InternetAddress.lookup('google.com').timeout(const Duration(seconds: 4));
+        hasConnection = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      } catch (e) {
+        debugPrint('AutoSync: DNS lookup failed ($e). Attempting sync anyway as Firestore supports offline queueing.');
+        // Firestore can cache writes offline, so we can still try to sync exams.
+        // However, we set hasConnection to false so we skip the cloud pull phase to prevent blocking/hanging.
+        hasConnection = false;
+      }
 
-      // If local database is empty, pull from cloud first
+      // If local database is empty, pull from cloud first (only if we confirmed active internet connection)
       final stats = await _db.getDashboardStats(userId);
-      if (stats['totalExams'] == 0 && stats['totalSheets'] == 0) {
+      if (hasConnection && stats['totalExams'] == 0 && stats['totalSheets'] == 0) {
         debugPrint('Local DB empty, pulling from cloud...');
-        await pullFromCloud(userId);
+        try {
+          await _performPull(userId);
+        } catch (e) {
+          debugPrint('AutoSync: Pull from cloud failed (possibly offline): $e');
+        }
       }
 
       await _performSync(userId);
-    } catch (_) {
-      // Silent fail for auto-sync
+      debugPrint('AutoSync completed successfully.');
+    } on SocketException catch (e) {
+      debugPrint('AutoSync Offline (SocketException): $e');
+    } on TimeoutException catch (e) {
+      debugPrint('AutoSync Offline (TimeoutException): $e');
+    } catch (e, stack) {
+      debugPrint('AutoSync Critical Error: $e\n$stack');
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -62,6 +82,8 @@ class SyncProvider with ChangeNotifier {
     int studentCount = 0;
     int examCount = 0;
     int resultCount = 0;
+    
+    final List<Future<void>> syncFutures = [];
 
     // 1. Sync Students (Local -> Cloud)
     final students = await _db.getAllStudents(userId);
@@ -72,7 +94,7 @@ class SyncProvider with ChangeNotifier {
         studentBatch.set(docRef, s.toMap());
         studentCount++;
       }
-      await studentBatch.commit();
+      syncFutures.add(studentBatch.commit());
     }
 
     // 2. Sync Exams (Local -> Cloud)
@@ -80,16 +102,18 @@ class SyncProvider with ChangeNotifier {
     for (var e in exams) {
       if (e.id == null) continue;
       final examDoc = userDoc.collection('exams').doc(e.id.toString());
-      await examDoc.set(e.toMap());
+      syncFutures.add(examDoc.set(e.toMap()));
       examCount++;
 
       final questions = await _db.getQuestionsByExamId(e.id!);
-      final qBatch = _firestore.batch();
-      for (var q in questions) {
-        final qDoc = examDoc.collection('questions').doc(q.questionNumber.toString());
-        qBatch.set(qDoc, q.toMap());
+      if (questions.isNotEmpty) {
+        final qBatch = _firestore.batch();
+        for (var q in questions) {
+          final qDoc = examDoc.collection('questions').doc(q.questionNumber.toString());
+          qBatch.set(qDoc, q.toMap());
+        }
+        syncFutures.add(qBatch.commit());
       }
-      await qBatch.commit();
     }
 
     // 3. Sync Results (Local -> Cloud)
@@ -102,13 +126,115 @@ class SyncProvider with ChangeNotifier {
         resultBatch.set(docRef, r.toMap());
         resultCount++;
       }
-      await resultBatch.commit();
+      syncFutures.add(resultBatch.commit());
     }
 
-    // 4. Data Repair
+    // 4. Sync Deletions (Cloud -> Deleted if not in Local)
+    // A. Sync deleted students
+    final localStudentIds = students.map((s) => s.studentId).toSet();
+    try {
+      final cloudStudentsSnap = await userDoc.collection('students').get();
+      for (var doc in cloudStudentsSnap.docs) {
+        if (!localStudentIds.contains(doc.id)) {
+          syncFutures.add(doc.reference.delete());
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync Deletions: Students failed: $e');
+    }
+
+    // B. Sync deleted exams
+    final localExamIds = exams.map((e) => e.id.toString()).toSet();
+    try {
+      final cloudExamsSnap = await userDoc.collection('exams').get();
+      for (var doc in cloudExamsSnap.docs) {
+        if (!localExamIds.contains(doc.id)) {
+          syncFutures.add(doc.reference.delete());
+          // Also delete questions subcollection
+          final qSnap = await doc.reference.collection('questions').get();
+          for (var qDoc in qSnap.docs) {
+            syncFutures.add(qDoc.reference.delete());
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync Deletions: Exams failed: $e');
+    }
+
+    // C. Sync deleted results
+    final localResultIds = results.map((r) => '${r.examId}_${r.studentId}').toSet();
+    try {
+      final cloudResultsSnap = await userDoc.collection('results').get();
+      for (var doc in cloudResultsSnap.docs) {
+        if (!localResultIds.contains(doc.id)) {
+          syncFutures.add(doc.reference.delete());
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync Deletions: Results failed: $e');
+    }
+
+    // Await all network operations in parallel to remove synchronization delay
+    if (syncFutures.isNotEmpty) {
+      await Future.wait(syncFutures);
+    }
+
+    // 5. Data Repair
     await _db.repairOrphanedData(userId);
 
     return "Synced: $studentCount students, $examCount exams, $resultCount results";
+  }
+
+  /// Internal helper to pull data from cloud without modifying the _isSyncing outer state
+  Future<String> _performPull(String userId) async {
+    final userDoc = _firestore.collection('users').doc(userId);
+    int studentCount = 0;
+    int examCount = 0;
+    int resultCount = 0;
+
+    // Parallel fetch from Firestore
+    final Future<QuerySnapshot<Map<String, dynamic>>> studentFetch = userDoc.collection('students').get();
+    final Future<QuerySnapshot<Map<String, dynamic>>> examFetch = userDoc.collection('exams').get();
+    final Future<QuerySnapshot<Map<String, dynamic>>> resultFetch = userDoc.collection('results').get();
+
+    final results = await Future.wait([studentFetch, examFetch, resultFetch]);
+    
+    final studentSnap = results[0];
+    final examSnap = results[1];
+    final resultSnap = results[2];
+
+    // Use a local DB transaction for speed
+    final dbClient = await _db.db;
+    await dbClient.transaction((txn) async {
+      // 1. Process Students
+      for (var doc in studentSnap.docs) {
+        final s = Student.fromMap(doc.data());
+        await txn.insert('students', s.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        studentCount++;
+      }
+
+      // 2. Process Exams
+      for (var doc in examSnap.docs) {
+        final e = Exam.fromMap(doc.data());
+        await txn.insert('exams', e.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        examCount++;
+
+        final qSnap = await doc.reference.collection('questions').get();
+        for (var qDoc in qSnap.docs) {
+          final q = Question.fromMap(qDoc.data());
+          await txn.insert('questions', q.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // 3. Process Results
+      for (var doc in resultSnap.docs) {
+        final r = Result.fromMap(doc.data());
+        await txn.insert('results', r.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        resultCount++;
+      }
+    });
+
+    return "Restored: $studentCount students, $examCount exams, $resultCount results";
   }
 
   /// Restores data from cloud to local device at high speed
@@ -118,55 +244,8 @@ class SyncProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final userDoc = _firestore.collection('users').doc(userId);
-      int studentCount = 0;
-      int examCount = 0;
-      int resultCount = 0;
-
-      // Parallel fetch from Firestore
-      final Future<QuerySnapshot<Map<String, dynamic>>> studentFetch = userDoc.collection('students').get();
-      final Future<QuerySnapshot<Map<String, dynamic>>> examFetch = userDoc.collection('exams').get();
-      final Future<QuerySnapshot<Map<String, dynamic>>> resultFetch = userDoc.collection('results').get();
-
-      final results = await Future.wait([studentFetch, examFetch, resultFetch]);
-      
-      final studentSnap = results[0];
-      final examSnap = results[1];
-      final resultSnap = results[2];
-
-      // Use a local DB transaction for speed
-      final dbClient = await _db.db;
-      await dbClient.transaction((txn) async {
-        // 1. Process Students
-        for (var doc in studentSnap.docs) {
-          final s = Student.fromMap(doc.data());
-          await txn.insert('students', s.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-          studentCount++;
-        }
-
-        // 2. Process Exams
-        for (var doc in examSnap.docs) {
-          final e = Exam.fromMap(doc.data());
-          await txn.insert('exams', e.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-          examCount++;
-
-          // Note: sub-collections still need separate fetches, but we can do them here
-          final qSnap = await doc.reference.collection('questions').get();
-          for (var qDoc in qSnap.docs) {
-            final q = Question.fromMap(qDoc.data());
-            await txn.insert('questions', q.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-          }
-        }
-
-        // 3. Process Results
-        for (var doc in resultSnap.docs) {
-          final r = Result.fromMap(doc.data());
-          await txn.insert('results', r.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-          resultCount++;
-        }
-      });
-
-      return "Restored: $studentCount students, $examCount exams, $resultCount results";
+      final summary = await _performPull(userId);
+      return summary;
     } catch (e) {
       debugPrint('Restore Error: $e');
       rethrow;
