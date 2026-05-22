@@ -536,6 +536,23 @@ class CreateExamScreenState extends State<CreateExamScreen> {
 
                 final syncProv = Provider.of<SyncProvider>(context, listen: false);
                 final userId = auth.userId;
+                // Directly push the new exam to Firestore immediately (awaited)
+                if (userId != null) {
+                  try {
+                    await syncProv.syncExamDirectly(userId, examId);
+                  } catch (e) {
+                    debugPrint('Firestore sync failed after exam creation: $e');
+                    // Non-fatal — exam is saved locally; background sync will retry
+                    _scaffoldMessengerKey.currentState?.showSnackBar(
+                      SnackBar(
+                        content: Text('Saved locally. Cloud sync failed: $e'),
+                        backgroundColor: Colors.orange,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                }
+                // Also kick off full background sync for other data
                 syncProv.autoSync(userId);
 
                 if (mounted) {

@@ -63,6 +63,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,

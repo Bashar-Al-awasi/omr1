@@ -39,7 +39,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           _passwordController.text.trim(),
           _nameController.text.trim(),
         );
+
+        // Immediately register the user document in Firestore
+        final uid = authProvider.userId;
+        if (uid != null) {
+          try {
+            await syncProvider.ensureUserDocument(uid);
+          } catch (e) {
+            debugPrint('Could not write user doc on signup: $e');
+            // Non-fatal — will retry on next sync
+          }
+        }
+
+        // Kick off background sync for any existing data
         syncProvider.autoSync(authProvider.userId);
+
         if (mounted) {
           Navigator.of(context).pop();
         }

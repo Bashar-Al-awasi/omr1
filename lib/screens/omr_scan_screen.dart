@@ -564,7 +564,7 @@ class _OmrScanScreenState extends State<OmrScanScreen> {
 
       setState(() {
         _scanResult =
-            '${loc.examLabel}: ${_selectedExam!.title}\n${loc.studentName}: ${studentName == 'Unknown Student' ? loc.unknownStudent : studentName}\n${loc.scoreLabel}: $scorePercentage%\n${loc.studentId}: $studentIdStr\n\n${loc.results}:\n${answerData.map((a) => "${loc.question}${a['question']}: ${a['selected']} (${a['isCorrect'] ? loc.correct : loc.incorrect})").join("\n")}';
+            '${loc.examLabel}: ${_selectedExam!.title}\n${loc.studentName}: ${studentName == 'Unknown Student' ? loc.unknownStudent : studentName}\n${loc.scoreLabel}: $studentMark/$totalMaxMark\n${loc.studentId}: $studentIdStr\n\n${loc.results}:\n${answerData.map((a) => "${loc.question}${a['question']}: ${a['selected']} (${a['isCorrect'] ? loc.correct : loc.incorrect})").join("\n")}';
         _tempIdResult = 'Extracted ID: $studentIdStr';
       });
 

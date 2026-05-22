@@ -278,6 +278,7 @@ class _LiveScanScreenState extends State<LiveScanScreen>
 
       if (mounted) {
         setState(() {
+          _isProcessing = false;  // ← unlock the scan loop
           _scannedCount++;
           _sessionResults.insert(0, {
             'studentName': studentName,

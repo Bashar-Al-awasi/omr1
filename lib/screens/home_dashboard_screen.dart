@@ -33,14 +33,20 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
     });
   }
 
-  void refreshData() {
+  Future<void> refreshData({bool triggerSync = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     setState(() {
       _statsFuture = DatabaseHelper().getDashboardStats(auth.userId);
       _recentScansFuture = DatabaseHelper().getRecentScans(5, auth.userId);
     });
-    // Trigger auto-sync after refresh
-    Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+
+    if (triggerSync) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Provider.of<SyncProvider>(context, listen: false).autoSync(auth.userId);
+        }
+      });
+    }
   }
 
   @override
@@ -66,23 +72,7 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ],
         ),
         actions: [
-          Consumer<SyncProvider>(
-            builder: (context, syncProv, _) {
-              if (syncProv.isSyncing) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                );
-              }
-              return _buildProfileMenu(context, auth);
-            },
-          ),
+          _buildProfileMenu(context, auth),
           const SizedBox(width: 8),
         ],
         iconTheme: const IconThemeData(color: Colors.black),
@@ -90,7 +80,7 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            refreshData();
+            await refreshData(triggerSync: true);
           },
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -323,35 +313,6 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
           localeProvider.setLocale(const Locale('en'));
         } else if (value == 'ar') {
           localeProvider.setLocale(const Locale('ar'));
-        } else if (value == 'sync') {
-          if (auth.userId != null) {
-            final messenger = ScaffoldMessenger.of(context);
-            final isAr = currentLocale.languageCode == 'ar';
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(isAr ? 'جاري المزامنة مع السحابة...' : 'Syncing with cloud...'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-            try {
-              final syncProv = Provider.of<SyncProvider>(context, listen: false);
-              final summary = await syncProv.syncToCloud(auth.userId!);
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(summary),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              refreshData();
-            } catch (e) {
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(isAr ? 'فشلت المزامنة: $e' : 'Sync failed: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
         }
       },
       itemBuilder: (context) => [
@@ -372,19 +333,6 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const Divider(),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sync',
-          child: Row(
-            children: [
-              const Icon(Icons.sync_rounded, color: Colors.blue, size: 20),
-              const SizedBox(width: 12),
-              Text(
-                currentLocale.languageCode == 'ar' ? 'مزامنة الآن' : 'Sync Now',
-                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w600),
-              ),
             ],
           ),
         ),

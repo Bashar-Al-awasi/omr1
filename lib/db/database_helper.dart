@@ -25,7 +25,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Increased version for multi-user support
+      version: 4, // v4: added needs_sync flag to reduce Firestore writes
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -36,10 +36,18 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE results ADD COLUMN student_name TEXT');
     }
     if (oldVersion < 3) {
-      // Add user_id column to isolate data by user
       await db.execute('ALTER TABLE students ADD COLUMN user_id TEXT');
       await db.execute('ALTER TABLE exams ADD COLUMN user_id TEXT');
       await db.execute('ALTER TABLE results ADD COLUMN user_id TEXT');
+    }
+    if (oldVersion < 4) {
+      // Mark all existing rows as needing sync (1 = unsynced)
+      await db.execute('ALTER TABLE students ADD COLUMN needs_sync INTEGER DEFAULT 1');
+      await db.execute('ALTER TABLE exams ADD COLUMN needs_sync INTEGER DEFAULT 1');
+      await db.execute('ALTER TABLE results ADD COLUMN needs_sync INTEGER DEFAULT 1');
+      await db.execute('UPDATE students SET needs_sync = 1');
+      await db.execute('UPDATE exams SET needs_sync = 1');
+      await db.execute('UPDATE results SET needs_sync = 1');
     }
   }
 
@@ -52,7 +60,8 @@ class DatabaseHelper {
         subject TEXT,
         notes TEXT,
         title TEXT,
-        user_id TEXT
+        user_id TEXT,
+        needs_sync INTEGER DEFAULT 1
       )
     ''');
 
@@ -65,7 +74,8 @@ class DatabaseHelper {
         num_questions INTEGER,
         num_choices INTEGER,
         answer_key TEXT,
-        user_id TEXT
+        user_id TEXT,
+        needs_sync INTEGER DEFAULT 1
       )
     ''');
 
@@ -90,6 +100,7 @@ class DatabaseHelper {
         answers TEXT,
         date TEXT,
         user_id TEXT,
+        needs_sync INTEGER DEFAULT 1,
         FOREIGN KEY(exam_id) REFERENCES exams(id),
         FOREIGN KEY(student_id) REFERENCES students(student_id)
       )
@@ -190,9 +201,10 @@ class DatabaseHelper {
 
   Future<int> updateExam(Exam exam) async {
     final database = await db;
+    final data = exam.toMap()..['needs_sync'] = 1; // flag for re-sync
     return await database.update(
       'exams',
-      exam.toMap(),
+      data,
       where: 'id = ?',
       whereArgs: [exam.id],
     );
@@ -316,6 +328,61 @@ class DatabaseHelper {
       {'user_id': userId}, 
       where: 'user_id IS NULL'
     );
+  }
+
+  // ── Needs-sync helpers ─────────────────────────────────────────────────────
+
+  /// Returns only students that haven't been pushed to Firestore yet.
+  Future<List<Student>> getUnsyncedStudents(String? userId) async {
+    final database = await db;
+    final res = await database.query(
+      'students',
+      where: '(user_id = ? OR user_id IS NULL) AND needs_sync = 1',
+      whereArgs: [userId],
+    );
+    return res.map((e) => Student.fromMap(e)).toList();
+  }
+
+  /// Returns only exams that haven't been pushed to Firestore yet.
+  Future<List<Exam>> getUnsyncedExams(String? userId) async {
+    final database = await db;
+    final res = await database.query(
+      'exams',
+      where: '(user_id = ? OR user_id IS NULL) AND needs_sync = 1',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+    return res.map((e) => Exam.fromMap(e)).toList();
+  }
+
+  /// Returns only results that haven't been pushed to Firestore yet.
+  Future<List<Result>> getUnsyncedResults(String? userId) async {
+    final database = await db;
+    final res = await database.query(
+      'results',
+      where: '(user_id = ? OR user_id IS NULL) AND needs_sync = 1',
+      whereArgs: [userId],
+    );
+    return res.map((e) => Result.fromMap(e)).toList();
+  }
+
+  Future<void> markStudentSynced(String studentId) async {
+    final database = await db;
+    await database.update('students', {'needs_sync': 0},
+        where: 'student_id = ?', whereArgs: [studentId]);
+  }
+
+  Future<void> markExamSynced(int examId) async {
+    final database = await db;
+    await database.update('exams', {'needs_sync': 0},
+        where: 'id = ?', whereArgs: [examId]);
+  }
+
+  Future<void> markResultSynced(int examId, String studentId) async {
+    final database = await db;
+    await database.update('results', {'needs_sync': 0},
+        where: 'exam_id = ? AND student_id = ?',
+        whereArgs: [examId, studentId]);
   }
 
   Future<List<Map<String, dynamic>>> getRecentScans(int limit, String? userId) async {
