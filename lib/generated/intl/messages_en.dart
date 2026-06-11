@@ -64,6 +64,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "blank": MessageLookupByLibrary.simpleMessage("Blank"),
         "cameraReady": MessageLookupByLibrary.simpleMessage("Camera ready..."),
         "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
+        "changeList": MessageLookupByLibrary.simpleMessage("Change"),
         "chooseFile": MessageLookupByLibrary.simpleMessage("Choose File"),
         "chooseSaveLocation": MessageLookupByLibrary.simpleMessage(
             "Choose where to save the file"),
@@ -116,6 +117,10 @@ class MessageLookup extends MessageLookupByLibrary {
             "Provide details for the student list"),
         "importFailed": m2,
         "importLabel": MessageLookupByLibrary.simpleMessage("Import"),
+        "importNewList":
+            MessageLookupByLibrary.simpleMessage("Import New List"),
+        "importNewListHint": MessageLookupByLibrary.simpleMessage(
+            "Use the button below to import your first list"),
         "incorrect": MessageLookupByLibrary.simpleMessage("Incorrect"),
         "initializing": MessageLookupByLibrary.simpleMessage("Initializing..."),
         "languageLabel": MessageLookupByLibrary.simpleMessage("Language"),
@@ -185,6 +190,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Please select an exam first"),
         "selectLanguage":
             MessageLookupByLibrary.simpleMessage("Select Language"),
+        "selectOrImportHint": MessageLookupByLibrary.simpleMessage(
+            "Choose an existing list or import a new one"),
+        "selectStudentList":
+            MessageLookupByLibrary.simpleMessage("Select Student List"),
         "sheets": MessageLookupByLibrary.simpleMessage("Sheets"),
         "sheetsCountLabel": m7,
         "smartOmr": MessageLookupByLibrary.simpleMessage("Smart OMR"),

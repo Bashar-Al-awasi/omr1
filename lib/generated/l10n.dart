@@ -1479,6 +1479,56 @@ class S {
       args: [],
     );
   }
+
+  /// `Select Student List`
+  String get selectStudentList {
+    return Intl.message(
+      'Select Student List',
+      name: 'selectStudentList',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Choose an existing list or import a new one`
+  String get selectOrImportHint {
+    return Intl.message(
+      'Choose an existing list or import a new one',
+      name: 'selectOrImportHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import New List`
+  String get importNewList {
+    return Intl.message(
+      'Import New List',
+      name: 'importNewList',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use the button below to import your first list`
+  String get importNewListHint {
+    return Intl.message(
+      'Use the button below to import your first list',
+      name: 'importNewListHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Change`
+  String get changeList {
+    return Intl.message(
+      'Change',
+      name: 'changeList',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {
